@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MiniApp Video Bot</title>
+  <meta charset="UTF-8">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="config.js"></script>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    <style>
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+                 Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    padding: 10px;
+    margin: 0;
+    background-color: var(--bg);
+    color: var(--text);
+  }
+
+  #videoList div { margin-bottom: 10px; }
+
+  button {
+    margin: 5px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--btn-bg);
+    color: var(--btn-text);
+  }
+
+  input {
+    padding: 6px;
+    width: calc(100% - 120px);
+    box-sizing: border-box;
+    background: var(--input-bg);
+    color: var(--input-text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .error { color: var(--error); font-weight: bold; }
+  .loading { text-align: center; padding: 10px; }
+
+  header {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  h1 { font-size: 18px; margin: 0; }
+
+  /* Light mode */
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #ffffff;
+      --text: #000000;
+      --btn-bg: #ffffff;
+      --btn-text: #000000;
+      --border: #ddd;
+      --input-bg: #ffffff;
+      --input-text: #000000;
+      --error: red;
+    }
+  }
+
+  /* Dark mode */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121212;
+      --text: #ffffff;
+      --btn-bg: #1e1e1e;
+      --btn-text: #ffffff;
+      --border: #333;
+      --input-bg: #1e1e1e;
+      --input-text: #ffffff;
+      --error: #ff6b6b;
+    }
+  }
+</style>
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📹 Daftar Video</h1>
+  </header>
+
+  <div>
+    <input type="text" id="hashtagInput" placeholder="Filter hashtag (opsional)">
+    <button id="btnSearch">🔍 Cari</button>
+  </div>
+
+  <div id="videoList">⏳ Memuat data...</div>
+  <div id="loader" class="loading" style="display:none;">⏳ Memuat halaman berikut...</div>
+
+  <script>
+    const tg = window.Telegram?.WebApp || {};
+    tg.ready?.();
+
+    let currentPage = 1;
+    let totalPages = 1;
+    let currentHashtag = "";
+    let isLoading = false;
+
+    document.getElementById("btnSearch").addEventListener("click", applyFilter);
+
+    function showError(msg) {
+      document.getElementById("videoList").innerHTML = `<div class="error">❌ ${msg}</div>`;
+    }
+
+    function loadVideos(append = false) {
+      if (isLoading) return;
+      isLoading = true;
+
+      if (!append) {
+        document.getElementById("videoList").innerHTML = "⏳ Memuat...";
+      } else {
+        document.getElementById("loader").style.display = "block";
+      }
+
+      const initData = tg.initData || "browser-access"; // fallback dummy
+
+      const url = `${BASE_URL}?action=getvideos&page=${currentPage}&limit=10&hashtag=${encodeURIComponent(currentHashtag)}&initData=${encodeURIComponent(initData)}`;
+
+      fetch(url, { credentials: "omit" })
+        .then(res => res.text())
+        .then(txt => {
+          console.log("Raw response:", txt);
+          let data;
+          try {
+            data = JSON.parse(txt);
+          } catch (e) {
+            showError("JSON Parse Error: " + e.message);
+            console.error(e, txt);
+            return;
+          }
+
+          if (!data.success) {
+            showError(data.error || "Error dari server");
+            return;
+          }
+
+          totalPages = data.totalPages || 1;
+          if (!append) {
+            document.getElementById("videoList").innerHTML = "";
+          }
+
+          if (data.data.length === 0 && currentPage === 1) {
+            document.getElementById("videoList").innerHTML = "😔 Tidak ada video ditemukan.";
+            return;
+          }
+
+          const listHTML = data.data.map(v => {
+            return `<div>
+              🎬 ${escapeHtml(v.caption || '(tanpa caption)')}<br>
+              <small>🆔 ${escapeHtml(v.uniqueId || v.file_unique_id || '')}</small>
+            </div>`;
+          }).join("<hr>");
+
+          document.getElementById("videoList").insertAdjacentHTML("beforeend", listHTML);
+        })
+        .catch(err => {
+          showError("Fetch Error: " + err.message);
+          console.error(err);
+        })
+        .finally(() => {
+          isLoading = false;
+          document.getElementById("loader").style.display = "none";
+        });
+    }
+
+    function applyFilter() {
+      currentHashtag = document.getElementById("hashtagInput").value.trim();
+      currentPage = 1;
+      loadVideos(false);
+    }
+
+    window.addEventListener("scroll", () => {
+      if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 120) {
+        if (currentPage < totalPages && !isLoading) {
+          currentPage++;
+          loadVideos(true);
+        }
+      }
+    });
+
+    function escapeHtml(s) {
+      if (!s) return '';
+      return s.replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; });
+    }
+
+    loadVideos(false);
+  </script>
+</body>
+</html>
