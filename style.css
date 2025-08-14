@@ -1,0 +1,38 @@
+:root { --radius:8px; }
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0; padding: 12px;
+  background: var(--bg); color: var(--text);
+}
+header { margin-bottom: 10px; }
+h1 { font-size: 18px; margin: 0 0 8px; }
+.toolbar { display: flex; gap: 8px; align-items: center; }
+input[type="text"] {
+  flex: 1; padding: 8px 10px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--input-bg); color: var(--input-text);
+}
+button {
+  padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--btn-bg); color: var(--btn-text); cursor: pointer;
+}
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+.error { color: var(--error); margin-top: 8px; }
+.loading { text-align:center; padding:10px; opacity:0.8; }
+#videoList { display:flex; flex-direction:column; gap:12px; margin-top:10px; }
+.item { border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:var(--card-bg); }
+.media { aspect-ratio:16/9; background:#000; position:relative; }
+.thumb { width:100%; height:100%; object-fit:cover; display:block; }
+.placeholder { display:flex; align-items:center; justify-content:center; color:#888; font-size:48px; height:100%; }
+.badge { position:absolute; top:8px; left:8px; background:rgba(0,0,0,0.5); color:#fff; padding:2px 6px; border-radius:999px; font-size:12px; }
+.meta { padding:10px; }
+.cap { margin-bottom:6px; }
+.uid { opacity:0.8; font-size:12px; }
+.row { margin-top:8px; display:flex; justify-content:flex-end; gap:8px; align-items:center; }
+.chip { font-size:12px; opacity:0.85; }
+video { width:100%; height:100%; display:block; background:#000; }
+@media (prefers-color-scheme: light) {
+  :root { --bg:#fff; --text:#0b0b0b; --border:#ddd; --btn-bg:#fff; --btn-text:#0b0b0b; --input-bg:#fff; --input-text:#0b0b0b; --error:#d32f2f; --card-bg:#fff; }
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#111; --text:#f5f5f5; --border:#2b2b2b; --btn-bg:#1d1d1d; --btn-text:#f5f5f5; --input-bg:#1a1a1a; --input-text:#f5f5f5; --error:#ff6b6b; --card-bg:#161616; }
+}
