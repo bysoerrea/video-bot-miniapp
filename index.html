@@ -7,179 +7,395 @@
   <script src="config.js"></script>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
+    :root {
+      --gap: 10px;
+      --radius: 10px;
+    }
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-                   Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
       padding: 10px; margin: 0;
       background-color: var(--bg); color: var(--text);
     }
-    #videoList div { margin-bottom: 10px; }
-    button {
-      margin: 5px; padding: 6px 10px;
-      border-radius: 6px; border: 1px solid var(--border);
-      background: var(--btn-bg); color: var(--btn-text);
-      cursor: pointer;
-    }
+    header { display: flex; gap: var(--gap); align-items: center; margin-bottom: var(--gap); }
+    h1 { font-size: 18px; margin: 0; }
+    #controls { display: flex; gap: var(--gap); align-items: center; }
     input {
-      padding: 6px; width: calc(100% - 120px);
-      box-sizing: border-box;
+      padding: 8px; flex: 1; min-width: 0;
       background: var(--input-bg); color: var(--input-text);
-      border: 1px solid var(--border); border-radius: 6px;
+      border: 1px solid var(--border); border-radius: 8px;
+    }
+    button {
+      margin: 0; padding: 8px 12px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--btn-bg); color: var(--btn-text); cursor: pointer;
     }
     .error { color: var(--error); font-weight: bold; }
-    .loading { text-align: center; padding: 10px; }
-    header { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
-    h1 { font-size: 18px; margin: 0; }
+    .loading { text-align: center; padding: 10px; opacity: 0.8; }
+
+    /* List & Card */
+    #videoList { display: flex; flex-direction: column; gap: 12px; }
+    .item {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--card-bg); overflow: hidden;
+    }
+    .media {
+      position: relative; background: #000;
+      aspect-ratio: 16/9; /* untuk konsistensi layout meski thumbnail belum ada */
+      display: block; width: 100%; overflow: hidden;
+    }
+    .thumb {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      background: #111;
+    }
+    .placeholder {
+      color: #888; display: grid; place-items: center; width: 100%; height: 100%;
+      font-size: 48px;
+    }
+    .badge {
+      position: absolute; top: 8px; left: 8px; padding: 2px 6px; font-size: 12px; border-radius: 6px;
+      background: rgba(0,0,0,0.6); color: #fff;
+    }
+    .meta {
+      padding: 10px; display: grid; gap: 6px;
+    }
+    .meta small { opacity: 0.7; word-break: break-all; }
+    .row { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+    .chip {
+      padding: 2px 6px; border: 1px dashed var(--border); border-radius: 6px; font-size: 12px; opacity: 0.8;
+    }
+    .item.is-playing .chip { border-style: solid; opacity: 1; }
+
+    /* Sticky/Fixed Player (mode alternatif) */
+    #playerContainer {
+      position: sticky; top: 0; z-index: 999;
+      background: var(--bg);
+      padding-bottom: 8px; margin-bottom: 8px;
+      display: none; /* aktif bila mode 'sticky' */
+      border-bottom: 1px solid var(--border);
+    }
+    #player {
+      width: 100%; max-height: 360px; background: #000; border-radius: var(--radius);
+    }
+
     @media (prefers-color-scheme: light) {
       :root {
         --bg: #ffffff; --text: #000000; --btn-bg: #ffffff; --btn-text: #000000;
-        --border: #ddd; --input-bg: #ffffff; --input-text: #000000; --error: red;
+        --border: #ddd; --input-bg: #ffffff; --input-text: #000000; --error: #cc0000; --card-bg: #fff;
       }
     }
     @media (prefers-color-scheme: dark) {
       :root {
         --bg: #121212; --text: #ffffff; --btn-bg: #1e1e1e; --btn-text: #ffffff;
-        --border: #333; --input-bg: #1e1e1e; --input-text: #ffffff; --error: #ff6b6b;
+        --border: #333; --input-bg: #1e1e1e; --input-text: #ffffff; --error: #ff6b6b; --card-bg: #1a1a1a;
       }
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>📹 Daftar Video</h1>
+    <h1>🎥 Daftar Video</h1>
   </header>
 
-  <div>
-    <input type="text" id="hashtagInput" placeholder="Filter hashtag (opsional)">
+  <div id="controls">
+    <input type="text" id="hashtagInput" placeholder="Filter hashtag (opsional)" autocomplete="off">
     <button id="btnSearch">🔍 Cari</button>
+  </div>
+
+  <!-- Player alternatif (mode 'sticky') -->
+  <div id="playerContainer">
+    <div class="row" style="justify-content: space-between; margin-bottom:6px;">
+      <span class="chip">Player</span>
+      <button id="btnCloseSticky" title="Tutup">✖</button>
+    </div>
+    <video id="player" controls playsinline></video>
   </div>
 
   <div id="videoList">⏳ Memuat data...</div>
   <div id="loader" class="loading" style="display:none;">⏳ Memuat halaman berikut...</div>
 
-  <!-- Player video -->
-  <div style="margin-top:20px;">
-    <video id="player" controls width="100%" style="max-height:360px;"></video>
-  </div>
-
   <script>
+    // ====== Konfigurasi UI (tanpa ubah backend) ======
+    // 'inline' => player muncul di kartu item (default & disarankan)
+    // 'sticky' => player lengket di atas (seperti media bar)
+    const PLAYER_MODE = 'inline'; // 'inline' | 'sticky'
+    const ALLOW_MULTIPLE_PLAYBACK = false; // false => hanya satu video boleh aktif
+
+    // ====== Inisialisasi Telegram WebApp ======
     const tg = window.Telegram?.WebApp;
     if (!tg) {
       document.body.innerHTML = "<h2>🚫 Akses hanya melalui Telegram App (WebApp API tidak ditemukan)</h2>";
       throw new Error("Blocked: Telegram WebApp JS not available");
     }
     tg.ready();
-
     const ua = (navigator.userAgent || "").toLowerCase();
     if (!ua.includes("telegram")) {
       document.body.innerHTML = "<h2>🚫 Akses gagal — buka halaman ini melalui aplikasi Telegram di ponsel.</h2>";
       throw new Error("Blocked: Not Telegram App");
     }
 
+    // ====== State Pagination & Filter ======
     let currentPage = 1;
     let totalPages = 1;
     let currentHashtag = "";
     let isLoading = false;
+    const seenIds = new Set(); // deduplikasi antar halaman
 
-    document.getElementById("btnSearch").addEventListener("click", applyFilter);
+    // ====== DOM ======
+    const videoList = document.getElementById("videoList");
+    const loader = document.getElementById("loader");
+    const searchBtn = document.getElementById("btnSearch");
+    const searchInput = document.getElementById("hashtagInput");
+    const playerContainer = document.getElementById("playerContainer");
+    const stickyPlayer = document.getElementById("player");
+    const btnCloseSticky = document.getElementById("btnCloseSticky");
 
-    function showError(msg) {
-      document.getElementById("videoList").innerHTML = `<div class="error">❌ ${msg}</div>`;
+    // ====== Utils ======
+    function escapeHtml(s) {
+      if (!s) return "";
+      return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+    function fmtCaption(s) {
+      const cap = s || "(tanpa caption)";
+      return escapeHtml(cap);
+    }
+    function previewHTML(thumb) {
+      if (thumb) {
+        return `<img class="thumb" src="${escapeHtml(thumb)}" alt="thumbnail" loading="lazy">`;
+      }
+      return `<div class="placeholder">🎬</div>`;
+    }
+    function itemHTML(v) {
+      // Catatan: response mungkin punya field berbeda; kita jaga fallback
+      const cap = fmtCaption(v.caption);
+      const uid = escapeHtml(v.uniqueId || v.file_unique_id || "");
+      const fid = escapeHtml(v.file_id || v.fileId || "");
+      const thumb = escapeHtml(v.thumbnail || ""); // jika belum ada, tampilkan placeholder
+
+      // data-* disimpan untuk render ulang cepat tanpa re-fetch metadata
+      return `
+        <div class="item" data-fid="${fid}" data-uid="${uid}" data-cap="${cap}" data-thumb="${thumb}">
+          <div class="media">
+            ${previewHTML(thumb)}
+            <span class="badge">UID</span>
+          </div>
+          <div class="meta">
+            <div>🎬 ${cap}</div>
+            <small>🔔 ${uid}</small>
+            <div class="row">
+              <span class="chip">Ready</span>
+              <button class="btn-play">▶️ Play</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    function setLoading(append) {
+      if (!append) {
+        videoList.innerHTML = "⏳ Memuat...";
+      } else {
+        loader.style.display = "block";
+      }
+    }
+    function clearLoading() {
+      isLoading = false;
+      loader.style.display = "none";
     }
 
+    // ====== Fetch & Render ======
     function loadVideos(append = false) {
       if (isLoading) return;
       isLoading = true;
 
-      if (!append) {
-        document.getElementById("videoList").innerHTML = "⏳ Memuat...";
-      } else {
-        document.getElementById("loader").style.display = "block";
-      }
+      if (!append) setLoading(false); else setLoading(true);
 
       const initData = tg.initData || "";
       if (!initData) {
-        showError("Init data Telegram tidak ditemukan. Pastikan membuka melalui tombol MiniApp di Telegram.");
-        isLoading = false;
-        document.getElementById("loader").style.display = "none";
+        videoList.innerHTML = `<div class="error">❌ Init data Telegram tidak ditemukan. Buka lewat tombol MiniApp di Telegram.</div>`;
+        clearLoading();
         return;
       }
-
       const url = `${BASE_URL}?action=getvideos&page=${currentPage}&limit=10&hashtag=${encodeURIComponent(currentHashtag)}&initData=${encodeURIComponent(initData)}`;
 
       fetch(url, { credentials: "omit" })
         .then(res => res.text())
         .then(txt => {
           let data;
-          try { data = JSON.parse(txt); }
-          catch (e) { showError("JSON Parse Error: " + e.message); console.error(e, txt); return; }
-
+          try {
+            data = JSON.parse(txt);
+          } catch (e) {
+            videoList.innerHTML = `<div class="error">❌ JSON Parse Error: ${escapeHtml(e.message)}</div>`;
+            console.error(e, txt);
+            return;
+          }
           if (!data.success) {
-            showError(data.error || "Error dari server");
+            videoList.innerHTML = `<div class="error">❌ ${escapeHtml(data.error || "Error dari server")}</div>`;
             return;
           }
-
           totalPages = data.totalPages || 1;
-          if (!append) document.getElementById("videoList").innerHTML = "";
+          if (!append) videoList.innerHTML = "";
 
-          if (data.data.length === 0 && currentPage === 1) {
-            document.getElementById("videoList").innerHTML = "😔 Tidak ada video ditemukan.";
-            return;
+          const items = (data.data || []);
+          // Render dengan deduplikasi berdasarkan uniqueId/file_unique_id
+          const html = [];
+          for (const v of items) {
+            const uid = (v.uniqueId || v.file_unique_id || "");
+            if (uid && seenIds.has(uid)) continue;
+            if (uid) seenIds.add(uid);
+            html.push(itemHTML(v));
           }
 
-          const listHTML = data.data.map(v => {
-            const cap = escapeHtml(v.caption || '(tanpa caption)');
-            const uid = escapeHtml(v.uniqueId || v.file_unique_id || '');
-            const fid = escapeHtml(v.file_id || v.fileId || '');
-            return `<div>
-              🎬 ${cap}<br>
-              <small>🔔 ${uid}</small><br>
-              <button onclick="playVideo('${fid}')">▶️ Play</button>
-            </div>`;
-          }).join("<hr>");
-
-          document.getElementById("videoList").insertAdjacentHTML("beforeend", listHTML);
+          if (html.length === 0 && currentPage === 1 && seenIds.size === 0) {
+            videoList.innerHTML = "😔 Tidak ada video ditemukan.";
+            return;
+          }
+          if (html.length > 0) {
+            videoList.insertAdjacentHTML("beforeend", html.join(""));
+          }
         })
-        .catch(err => { showError("Fetch Error: " + err.message); console.error(err); })
-        .finally(() => { isLoading = false; document.getElementById("loader").style.display = "none"; });
+        .catch(err => {
+          videoList.innerHTML = `<div class="error">❌ Fetch Error: ${escapeHtml(err.message)}</div>`;
+          console.error(err);
+        })
+        .finally(clearLoading);
     }
 
+    // ====== Filter ======
     function applyFilter() {
-      currentHashtag = document.getElementById("hashtagInput").value.trim();
+      currentHashtag = searchInput.value.trim();
       currentPage = 1;
+      totalPages = 1;
+      seenIds.clear();
       loadVideos(false);
     }
 
+    // ====== Infinite Scroll (sederhana, minim risiko) ======
     window.addEventListener("scroll", () => {
-      if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 120) {
-        if (currentPage < totalPages && !isLoading) {
-          currentPage++;
-          loadVideos(true);
-        }
+      if (isLoading) return;
+      const nearBottom = (window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 120);
+      if (nearBottom && currentPage < totalPages) {
+        currentPage++;
+        loadVideos(true);
       }
     });
 
-    function escapeHtml(s) {
-      if (!s) return '';
-      return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    // ====== Playback Logic ======
+    function stopOtherInlinePlayers(exceptEl) {
+      if (ALLOW_MULTIPLE_PLAYBACK) return;
+      const playing = document.querySelectorAll(".item.is-playing");
+      for (const it of playing) {
+        if (it === exceptEl) continue;
+        const vid = it.querySelector("video");
+        if (vid) { try { vid.pause(); } catch(_){} }
+        resetItemPreview(it);
+      }
     }
-
-    // Fungsi Play Video (endpoint getfileurl)
-    function playVideo(fileId) {
-      if (!fileId) return alert("FileId kosong");
+    function resetItemPreview(itemEl) {
+      itemEl.classList.remove("is-playing");
+      const thumb = itemEl.dataset.thumb || "";
+      const media = itemEl.querySelector(".media");
+      if (media) {
+        media.innerHTML = `${previewHTML(thumb)}<span class="badge">UID</span>`;
+      }
+      const row = itemEl.querySelector(".row");
+      if (row) {
+        const chip = row.querySelector(".chip");
+        if (chip) chip.textContent = "Ready";
+        const btn = row.querySelector(".btn-play");
+        if (btn) btn.textContent = "▶️ Play";
+      }
+    }
+    function playInline(itemEl, fileId) {
       const initData = tg.initData || "";
+      if (!fileId) return alert("FileId kosong");
+      // Tombol -> state loading ringan
+      const row = itemEl.querySelector(".row");
+      if (row) {
+        const chip = row.querySelector(".chip");
+        if (chip) chip.textContent = "Loading...";
+      }
+
+      fetch(`${BASE_URL}?action=getfileurl&file_id=${encodeURIComponent(fileId)}&initData=${encodeURIComponent(initData)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.url) {
+            alert("Gagal ambil URL video");
+            resetItemPreview(itemEl);
+            return;
+          }
+          stopOtherInlinePlayers(itemEl);
+          itemEl.classList.add("is-playing");
+          const media = itemEl.querySelector(".media");
+          if (media) {
+            const poster = data.thumbnail || itemEl.dataset.thumb || "";
+            media.innerHTML = `
+              <video controls playsinline autoplay style="width:100%;height:100%;object-fit:contain;background:#000;"
+                     src="${escapeHtml(data.url)}" ${poster ? `poster="${escapeHtml(poster)}"` : ""}></video>
+            `;
+          }
+          if (row) {
+            const chip = row.querySelector(".chip"); if (chip) chip.textContent = "Playing";
+            const btn = row.querySelector(".btn-play"); if (btn) btn.textContent = "⏸ Stop";
+          }
+        })
+        .catch(err => {
+          alert("Error: " + err.message);
+          resetItemPreview(itemEl);
+        });
+    }
+    function playSticky(fileId) {
+      const initData = tg.initData || "";
+      if (!fileId) return alert("FileId kosong");
+      if (playerContainer.style.display !== "block") playerContainer.style.display = "block";
       fetch(`${BASE_URL}?action=getfileurl&file_id=${encodeURIComponent(fileId)}&initData=${encodeURIComponent(initData)}`)
         .then(res => res.json())
         .then(data => {
           if (!data.url) return alert("Gagal ambil URL video");
-          const player = document.getElementById('player');
-          player.src = data.url;
-          player.poster = data.thumbnail || "";
-          player.play();
+          stickyPlayer.src = data.url;
+          stickyPlayer.poster = data.thumbnail || "";
+          try { stickyPlayer.play(); } catch(_) {}
         })
         .catch(err => alert("Error: " + err.message));
     }
 
+    // ====== Event Delegation untuk tombol di list ======
+    videoList.addEventListener("click", (e) => {
+      const btn = e.target.closest(".btn-play");
+      if (!btn) return;
+      const item = e.target.closest(".item");
+      if (!item) return;
+      const fileId = item.dataset.fid || "";
+
+      // Toggle: jika sedang playing, tombol jadi Stop
+      if (item.classList.contains("is-playing")) {
+        const vid = item.querySelector("video");
+        if (vid) { try { vid.pause(); } catch(_){} }
+        resetItemPreview(item);
+        return;
+      }
+
+      if (PLAYER_MODE === 'inline') {
+        playInline(item, fileId);
+      } else {
+        // sticky mode
+        playSticky(fileId);
+      }
+    });
+
+    // ====== Sticky player close ======
+    btnCloseSticky.addEventListener("click", () => {
+      try { stickyPlayer.pause(); } catch(_) {}
+      stickyPlayer.removeAttribute("src");
+      stickyPlayer.removeAttribute("poster");
+      stickyPlayer.load();
+      playerContainer.style.display = "none";
+    });
+
+    // ====== Search handlers ======
+    searchBtn.addEventListener("click", applyFilter);
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") applyFilter();
+    });
+
+    // ====== Kickoff ======
     loadVideos(false);
   </script>
 </body>
