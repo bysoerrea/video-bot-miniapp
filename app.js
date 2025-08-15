@@ -297,9 +297,37 @@ async function playInline(item, fid) {
     // Mark current
     currentPlayingItem = item;
   } catch (err) {
-    renderError(err.message || "Tidak bisa memuat video.");
+  const msg = (err?.message || "").toLowerCase();
+
+  // 🔹 Deteksi pesan "file is too big" dari backend
+  const debugEl = document.getElementById("debugPanel");
+  const debugText = debugEl ? debugEl.textContent.toLowerCase() : "";
+
+  if (msg.includes("file is too big") || debugText.includes("file is too big")) {
+    // Ganti tombol Play dengan teks
+    const btn = item.querySelector(".btn-play");
+    if (btn) {
+      btn.replaceWith(Object.assign(document.createElement("span"), {
+        className: "file-big",
+        textContent: "File too big"
+      }));
+    }
+
+    // Ubah chip status
+    const chip = item.querySelector(".chip");
+    if (chip) chip.textContent = "❌ Too large";
+
+    // Stop player / reset media
     stopItem(item);
-  } finally {
+
+    // Lewati popup error untuk case ini
+    return;
+  }
+
+  // Default: error lain tetap lewat jalur lama
+  renderError(err.message || "Tidak bisa memuat video.");
+  stopItem(item);
+} finally {
     btnSearch.disabled = false;
   }
 }
