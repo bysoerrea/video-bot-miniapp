@@ -49,6 +49,22 @@ video { width:100%; height:100%; display:block; background:#000; }
   animation: pulseBigFile 1.2s ease-in-out infinite;
   white-space: nowrap;
 }
+.chip-size {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-right: 4px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  background-color: #e0e0e0; /* Light mode */
+  color: #333;
+}
+@media (prefers-color-scheme: dark) {
+  .chip-size {
+    background-color: #424242; /* Dark mode */
+    color: #f5f5f5;
+  }
+}
 
 @keyframes pulseBigFile {
   0%   { transform: scale(1);   box-shadow: 0 0 0 rgba(255,95,109,0.6); }
