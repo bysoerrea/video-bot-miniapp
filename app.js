@@ -234,6 +234,7 @@ async function resolveFileUrl(fid) {
 }
 //end debug sementara
 
+
 //async function resolveFileUrl(fid) {
   //const initData = tg.initData || "";
   //const url = `${BASE_URL}?action=getfileurl&file_id=${encodeURIComponent(fid)}&initData=${encodeURIComponent(initData)}`;
