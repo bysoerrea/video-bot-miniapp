@@ -48,10 +48,12 @@ function itemHTML(v) {
   const fid = escapeHtml(v.file_id || v.fileId || "");
   // PATCH: Fallback thumbnail dari ThumbFileId via getfileurl
   let thumbUrl = v.thumbnail || "";
-  if (!thumbUrl && v.ThumbFileId) {
-    const initData = tg.initData || "";
-    thumbUrl = `${BASE_URL}?action=getfileurl&file_id=${encodeURIComponent(v.ThumbFileId)}&initData=${encodeURIComponent(initData)}`;
-  }
+  // ini dihapus dulu untuk uji coba
+  //if (!thumbUrl && v.ThumbFileId) {
+    //const initData = tg.initData || "";
+    //thumbUrl = `${BASE_URL}?action=getfileurl&file_id=${encodeURIComponent(v.ThumbFileId)}&initData=${encodeURIComponent(initData)}`;
+  //}
+  //sampai di sini
   const thumb = escapeHtml(thumbUrl);
   return `
     <div class="item" data-fid="${fid}" data-uid="${uid}" data-cap="${cap}" data-thumb="${thumb}">
