@@ -45,16 +45,8 @@ function previewHTML(thumb) {
 function itemHTML(v) {
   const cap = fmtCaption(v.caption);
   const uid = escapeHtml(v.uniqueId || v.file_unique_id || "");
-  const fid = escapeHtml(v.file_id || v.fileId || "");
-  // PATCH: Fallback thumbnail dari ThumbFileId via getfileurl
-  let thumbUrl = v.thumbnail || "";
-  // ini dihapus dulu untuk uji coba
-  //if (!thumbUrl && v.ThumbFileId) {
-    //const initData = tg.initData || "";
-    //thumbUrl = `${BASE_URL}?action=getfileurl&file_id=${encodeURIComponent(v.ThumbFileId)}&initData=${encodeURIComponent(initData)}`;
-  //}
-  //sampai di sini
-  const thumb = escapeHtml(thumbUrl);
+  const fid = escapeHtml(v.file_id || "");       // wajib file_id video
+  const thumb = escapeHtml(v.thumbnail || "");   // URL thumbnail langsung
   return `
     <div class="item" data-fid="${fid}" data-uid="${uid}" data-cap="${cap}" data-thumb="${thumb}">
       <div class="media">
@@ -195,22 +187,36 @@ function stopItem(item) {
   const btn = item.querySelector(".btn-play");
   if (btn) btn.textContent = "▶️ Play";
 }
+function stripBomAndTrim(s) {
+  if (!s) return "";
+  return s.replace(/^\uFEFF/, "").trim();
+}
+function tolerantJsonUrlParse(text) {
+  const cleaned = stripBomAndTrim(text);
+  try {
+    const obj = JSON.parse(cleaned);
+    if (obj && typeof obj.url === "string" && /^https?:\/\//i.test(obj.url)) return obj.url;
+  } catch (_) {}
+  const match = cleaned.match(/{[\\s\\S]*}/);
+  if (match) {
+    try {
+      const obj2 = JSON.parse(match[0]);
+      if (obj2 && typeof obj2.url === "string" && /^https?:\/\//i.test(obj2.url)) return obj2.url;
+    } catch (_) {}
+    }
+  if (/^https?:\/\//i.test(cleaned)) return cleaned;
+  return null;
+}
 
 async function resolveFileUrl(fid) {
   const initData = tg.initData || "";
   const url = `${BASE_URL}?action=getfileurl&file_id=${encodeURIComponent(fid)}&initData=${encodeURIComponent(initData)}`;
-  const text = await (await fetch(url)).text();
-  // Terima JSON { success, url } atau langsung string URL
-  try {
-    const obj = JSON.parse(text);
-    if (obj && obj.url) return obj.url;
-    throw new Error("Respon JSON tanpa url");
-  } catch {
-    // Fallback: jika text sudah berupa URL
-    if (/^https?:\/\//i.test(text.trim())) return text.trim();
-    throw new Error("Respon getfileurl tidak valid");
-  }
-}
+const text = await (await fetch(url)).text();
+const parsed = tolerantJsonUrlParse(text);
+if (parsed) return parsed;
+console.error("getfileurl raw:", stripBomAndTrim(text).slice(0,200));
+throw new Error("Respon getfileurl tidak valid");
+ }
 
 async function playInline(item, fid) {
   try {
@@ -218,7 +224,11 @@ async function playInline(item, fid) {
 
     // Stop player lain
     stopCurrentPlaying();
-
+    
+    if (!fid || fid.length < 10) {
+      renderError("file_id tidak valid dari backend.");
+      return;
+    
     const media = item.querySelector(".media");
     const chip = item.querySelector(".chip");
     const btn = item.querySelector(".btn-play");
