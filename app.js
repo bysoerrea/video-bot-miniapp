@@ -41,12 +41,25 @@ function previewHTML(thumb) {
   }
   return `<div class="placeholder">🎬</div>`;
 }
-
+function formatFileSize(bytes) {
+  if (!bytes || bytes <= 0) return '';
+  const KB = 1024, MB = KB * 1024, GB = MB * 1024;
+  if (bytes >= GB) return (bytes / GB).toFixed(2) + ' GB';
+  if (bytes >= MB) return (bytes / MB).toFixed(2) + ' MB';
+  return Math.round(bytes / KB) + ' KB';
+}
 function itemHTML(v) {
   const cap = fmtCaption(v.caption);
   const uid = escapeHtml(v.uniqueId || v.file_unique_id || "");
-  const fid = escapeHtml(v.file_id || "");       // wajib file_id video
-  const thumb = escapeHtml(v.thumbnail || "");   // URL thumbnail langsung
+  const fid = escapeHtml(v.file_id || ""); // wajib file_id
+  const thumb = escapeHtml(v.thumbnail || "");
+
+  // 🔹 Chip ukuran file (jika tersedia)
+  let sizeChip = '';
+  if (v.file_size) {
+    sizeChip = `<span class="chip-size">📦 ${formatFileSize(v.file_size)}</span>`;
+  }
+
   return `
     <div class="item" data-fid="${fid}" data-uid="${uid}" data-cap="${cap}" data-thumb="${thumb}">
       <div class="media">
@@ -57,6 +70,7 @@ function itemHTML(v) {
         <div class="cap">🎬 ${cap}</div>
         <div class="uid">🔔 ${uid}</div>
         <div class="row">
+          ${sizeChip}
           <span class="chip">Ready</span>
           <button class="btn-play">▶️ Play</button>
         </div>
