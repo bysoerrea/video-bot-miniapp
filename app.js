@@ -309,7 +309,7 @@ async function playInline(item, fid) {
     if (btn) {
       btn.replaceWith(Object.assign(document.createElement("span"), {
         className: "file-big",
-        textContent: "File too big"
+        textContent: "Video lebih dari 20MB, tonton di BOT langsung"
       }));
     }
 
