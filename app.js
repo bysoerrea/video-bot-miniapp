@@ -207,16 +207,42 @@ function tolerantJsonUrlParse(text) {
   if (/^https?:\/\//i.test(cleaned)) return cleaned;
   return null;
 }
+// fungsi debug sementara
+// TEMP PANEL DEBUG
+function appendDebug(msg) {
+  const el = document.getElementById("debugPanel");
+  if (el) el.textContent += `[${new Date().toISOString()}] ${msg}\n`;
+}
 
 async function resolveFileUrl(fid) {
+  appendDebug(`START fid=${fid}`);
   const initData = tg.initData || "";
   const url = `${BASE_URL}?action=getfileurl&file_id=${encodeURIComponent(fid)}&initData=${encodeURIComponent(initData)}`;
-const text = await (await fetch(url)).text();
-const parsed = tolerantJsonUrlParse(text);
-if (parsed) return parsed;
-console.error("getfileurl raw:", stripBomAndTrim(text).slice(0,200));
-throw new Error("Respon getfileurl tidak valid");
- }
+  appendDebug(`REQ ${url.slice(0,80)}...`);
+
+  const text = await (await fetch(url)).text();
+  appendDebug(`RAW[0..200]=${stripBomAndTrim(text).slice(0,200)}`);
+
+  const parsed = tolerantJsonUrlParse(text);
+  if (parsed) {
+    appendDebug(`OK parsed=${parsed}`);
+    return parsed;
+  }
+
+  appendDebug(`FAIL parse file url`);
+  throw new Error("Respon getfileurl tidak valid");
+}
+//end debug sementara
+
+//async function resolveFileUrl(fid) {
+  //const initData = tg.initData || "";
+  //const url = `${BASE_URL}?action=getfileurl&file_id=${encodeURIComponent(fid)}&initData=${encodeURIComponent(initData)}`;
+//const text = await (await fetch(url)).text();
+//const parsed = tolerantJsonUrlParse(text);
+//if (parsed) return parsed;
+//console.error("getfileurl raw:", stripBomAndTrim(text).slice(0,200));
+//throw new Error("Respon getfileurl tidak valid");
+ //}
 
 async function playInline(item, fid) {
   try {
