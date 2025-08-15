@@ -221,14 +221,14 @@ throw new Error("Respon getfileurl tidak valid");
 async function playInline(item, fid) {
   try {
     btnSearch.disabled = true;
-
     // Stop player lain
     stopCurrentPlaying();
-    
+
     if (!fid || fid.length < 10) {
       renderError("file_id tidak valid dari backend.");
       return;
-    
+    }
+
     const media = item.querySelector(".media");
     const chip = item.querySelector(".chip");
     const btn = item.querySelector(".btn-play");
@@ -276,6 +276,7 @@ async function playInline(item, fid) {
     btnSearch.disabled = false;
   }
 }
+
 
 // ====== Boot ======
 loadVideos(false);
