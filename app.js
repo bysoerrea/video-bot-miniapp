@@ -51,13 +51,26 @@ function formatFileSize(bytes) {
 function itemHTML(v) {
   const cap = fmtCaption(v.caption);
   const uid = escapeHtml(v.uniqueId || v.file_unique_id || "");
-  const fid = escapeHtml(v.file_id || ""); // wajib file_id
+  const fid = escapeHtml(v.file_id || "");
   const thumb = escapeHtml(v.thumbnail || "");
 
-  // 🔹 Chip ukuran file (jika tersedia)
+  const MAX_BYTES = 19 * 1024 * 1024; // 50 MB limit
   let sizeChip = '';
+  let statusChip = '';
+  let playBtn = '';
+
   if (v.file_size) {
     sizeChip = `<span class="chip-size">📦 ${formatFileSize(v.file_size)}</span>`;
+    if (v.file_size > MAX_BYTES) {
+      statusChip = `<span class="chip error">File Besar, request di BOT</span>`;
+    } else {
+      statusChip = `<span class="chip">Ready</span>`;
+      playBtn = `<button class="btn-play">▶️ Play</button>`;
+    }
+  } else {
+    // fallback kalau size tidak ada
+    statusChip = `<span class="chip">Ready</span>`;
+    playBtn = `<button class="btn-play">▶️ Play</button>`;
   }
 
   return `
@@ -71,8 +84,8 @@ function itemHTML(v) {
         <div class="uid">🔔 ${uid}</div>
         <div class="row">
           ${sizeChip}
-          <span class="chip">Ready</span>
-          <button class="btn-play">▶️ Play</button>
+          ${statusChip}
+          ${playBtn}
         </div>
       </div>
     </div>
