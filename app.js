@@ -156,6 +156,13 @@ function loadVideos(append = false) {
       if (html.length > 0) {
         videoList.insertAdjacentHTML("beforeend", html.join(""));
       }
+      // Inisialisasi aspect ratio dari thumbnail
+const newItems = videoList.querySelectorAll('.item:not([data-ar])');
+newItems.forEach(item => {
+  initAspectFromThumb(item);
+  item.dataset.ar = '1';
+});
+
     })
     .catch(err => {
       videoList.innerHTML = `<div class="error">❌ ${escapeHtml(err.message || "Gagal memuat")}</div>`;
@@ -305,6 +312,8 @@ async function playInline(item, fid) {
     item.classList.add("is-playing");
     media.innerHTML = "";
     media.appendChild(videoEl);
+    bindAspectFromVideo(videoEl, media);
+
     if (chip) chip.textContent = "Playing";
     if (btn) btn.textContent = "⏹ Stop";
 
@@ -357,6 +366,30 @@ async function playInline(item, fid) {
 } finally {
     btnSearch.disabled = false;
   }
+}
+// ==== Aspect Ratio Helpers ====
+function setAspectFromMedia(el, w, h) {
+  if (w && h) el.style.setProperty('--ar', `${w} / ${h}`);
+}
+
+function initAspectFromThumb(item) {
+  const media = item.querySelector('.media');
+  const img = item.querySelector('.thumb');
+  if (!media || !img) return;
+  if (img.complete) {
+    setAspectFromMedia(media, img.naturalWidth, img.naturalHeight);
+  } else {
+    img.addEventListener('load', () =>
+      setAspectFromMedia(media, img.naturalWidth, img.naturalHeight),
+      { once: true }
+    );
+  }
+}
+
+function bindAspectFromVideo(videoEl, media) {
+  videoEl.addEventListener('loadedmetadata', () =>
+    setAspectFromMedia(media, videoEl.videoWidth, videoEl.videoHeight)
+  );
 }
 
 
