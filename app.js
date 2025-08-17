@@ -249,17 +249,17 @@ function appendDebug(msg) {
 }
 
 async function resolveFileUrl(fid) {
-  appendDebug(`START fid=${fid}`);
+  //appendDebug(`START fid=${fid}`);
   const initData = tg.initData || "";
   const url = `${BASE_URL}?action=getfileurl&file_id=${encodeURIComponent(fid)}&initData=${encodeURIComponent(initData)}`;
-  appendDebug(`REQ ${url.slice(0,80)}...`);
+  //appendDebug(`REQ ${url.slice(0,80)}...`);
 
   const text = await (await fetch(url)).text();
-  appendDebug(`RAW[0..200]=${stripBomAndTrim(text).slice(0,200)}`);
+  //appendDebug(`RAW[0..200]=${stripBomAndTrim(text).slice(0,200)}`);
 
   const parsed = tolerantJsonUrlParse(text);
   if (parsed) {
-    appendDebug(`OK parsed=${parsed}`);
+    //appendDebug(`OK parsed=${parsed}`);
     return parsed;
   }
 
