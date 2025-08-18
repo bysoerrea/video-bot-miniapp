@@ -1,5 +1,5 @@
 // ========== CONFIG ==========
-const BASE_URL = "PASTIKAN_ISI_DENGAN_URL_DEPLOY_WEB_APP_GAS";
+const BASE_URL = "https://script.google.com/macros/s/AKfycbyXwDQzx31tpoE6gw55aNoAw57o6j9H6RYEY8EaA2HCY34cq74uI_8KrFv36W9wpHo/exec";
 const USE_PROXY = true; // bisa di-set false untuk rollback ke mode lama
 
 // ========== UTILS ==========
