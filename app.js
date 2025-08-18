@@ -1,3 +1,16 @@
+// 🔒 Blokir klik kanan di seluruh halaman
+  document.addEventListener('contextmenu', e => e.preventDefault());
+
+  // (Opsional) Blokir shortcut save/inspect umum di desktop
+  document.addEventListener('keydown', e => {
+    // Ctrl+S, Ctrl+U, Ctrl+Shift+I, F12
+    if ((e.ctrlKey && ['s', 'u'].includes(e.key.toLowerCase())) ||
+        (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'i') ||
+        e.key === 'F12') {
+      e.preventDefault();
+    }
+  });
+
 // ====== Telegram context guard ======
 const tg = window.Telegram?.WebApp;
 if (!tg) {
