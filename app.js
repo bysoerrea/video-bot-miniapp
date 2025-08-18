@@ -345,7 +345,7 @@ async function playInline(item, fid) {
     if (btn) {
       btn.replaceWith(Object.assign(document.createElement("span"), {
         className: "file-big",
-        textContent: "Video lebih dari 20MB, tonton di BOT langsung"
+        textContent: ">20MB!!, cari dengan multi Hashtag di bot"
       }));
     }
 
