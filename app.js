@@ -306,6 +306,9 @@ async function playInline(item, fid) {
     videoEl.setAttribute("preload", "metadata");
     videoEl.controls = true;
     videoEl.src = fileUrl;
+    videoEl.controlsList = 'nodownload'; // ⛔ sembunyikan tombol download
+    videoEl.addEventListener('contextmenu', e => e.preventDefault()); // ⛔ disable klik kanan
+
     if (poster) videoEl.poster = poster;
 
     // Swap UI
@@ -384,12 +387,20 @@ function initAspectFromThumb(item) {
       { once: true }
     );
   }
+  // ⛔ Disable klik kanan pada thumbnail
+  img.addEventListener('contextmenu', e => e.preventDefault());
+
+  // ✅ Pastikan object-fit terjaga (drop-in style)
+  img.style.objectFit = 'contain';
 }
 
 function bindAspectFromVideo(videoEl, media) {
   videoEl.addEventListener('loadedmetadata', () =>
     setAspectFromMedia(media, videoEl.videoWidth, videoEl.videoHeight)
   );
+  // 🔒 Proteksi tambahan:
+  videoEl.controlsList = 'nodownload';
+  videoEl.addEventListener('contextmenu', e => e.preventDefault());
 }
 
 
