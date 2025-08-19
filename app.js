@@ -10,6 +10,29 @@
       //e.preventDefault();
     //}
   //});
+const THUMB_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyXwDQzx31tpoE6gw55aNoAw57o6j9H6RYEY8EaA2HCY34cq74uI_8KrFv36W9wpHo/exec?action=thumb';
+
+async function loadThumbToImage(fileId, imgEl) {
+  // Optional: cache di sessionStorage supaya hemat hit
+  const cacheKey = `thumb:${fileId}`;
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) {
+    imgEl.src = cached;
+    return;
+  }
+
+  const url = `${THUMB_ENDPOINT}?file_id=${encodeURIComponent(fileId)}`;
+  const res = await fetch(url, { method: 'GET' });
+  const data = await res.json();
+
+  if (!data.ok) throw new Error(`thumb error: ${data.error}`);
+
+  const dataUrl = `data:${data.mime};base64,${data.base64}`;
+  imgEl.src = dataUrl;
+
+  // Simpan cache untuk sesi ini
+  sessionStorage.setItem(cacheKey, dataUrl);
+}
 
 // ====== Telegram context guard ======
 const tg = window.Telegram?.WebApp;
@@ -65,7 +88,8 @@ function itemHTML(v) {
   const cap = fmtCaption(v.caption);
   const uid = escapeHtml(v.uniqueId || v.file_unique_id || "");
   const fid = escapeHtml(v.file_id || "");
-  const thumb = escapeHtml(v.thumbnail || "");
+  // Ambil file_id khusus thumbnail dari backend
+const thumbFid = escapeHtml(v.thumb_file_id || "");
 
   const MAX_BYTES = 19 * 1024 * 1024; // 50 MB limit
   let sizeChip = '';
@@ -86,23 +110,24 @@ function itemHTML(v) {
     playBtn = `<button class="btn-play">▶️ Play</button>`;
   }
 
-  return `
-    <div class="item" data-fid="${fid}" data-uid="${uid}" data-cap="${cap}" data-thumb="${thumb}">
-      <div class="media">
-        ${previewHTML(thumb)}
-        <span class="badge">UID</span>
-      </div>
-      <div class="meta">
-        <div class="cap">🎬 ${cap}</div>
-        <div class="uid">🔔 ${uid}</div>
-        <div class="row">
-          ${sizeChip}
-          ${statusChip}
-          ${playBtn}
-        </div>
+ // Taruh file_id thumbnail di data-thumb, tapi <img> kosong dulu
+return `
+  <div class="item" data-fid="${fid}" data-uid="${uid}" data-cap="${cap}" data-thumb="${thumbFid}">
+    <div class="media">
+      <img class="thumb" alt="thumbnail" loading="lazy">
+      <span class="badge">UID</span>
+    </div>
+    <div class="meta">
+      <div class="cap">🎬 ${cap}</div>
+      <div class="uid">🔔 ${uid}</div>
+      <div class="row">
+        ${sizeChip}
+        ${statusChip}
+        ${playBtn}
       </div>
     </div>
-  `;
+  </div>
+`;
 }
 
 function setLoading(append) {
@@ -167,11 +192,23 @@ function loadVideos(append = false) {
         return;
       }
       if (html.length > 0) {
-        videoList.insertAdjacentHTML("beforeend", html.join(""));
-      }
-      // Inisialisasi aspect ratio dari thumbnail
+  videoList.insertAdjacentHTML("beforeend", html.join(""));
+}
+
+// Ambil semua item baru yang belum di‐aspect‐ratio
 const newItems = videoList.querySelectorAll('.item:not([data-ar])');
+
 newItems.forEach(item => {
+  const fidThumb = item.dataset.thumb;
+  const imgEl = item.querySelector('.thumb');
+
+  // 🔄 Load thumbnail via proxy GAS
+  if (fidThumb && imgEl) {
+    loadThumbToImage(fidThumb, imgEl)
+      .catch(err => console.error("Gagal load thumb:", err));
+  }
+
+  // Tetap set aspect ratio
   initAspectFromThumb(item);
   item.dataset.ar = '1';
 });
