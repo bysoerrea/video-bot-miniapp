@@ -36,8 +36,6 @@ async function loadThumbToImage(fileId, imgEl) {
     console.error('Gagal load thumbnail', err);
   }
 }
-
-
 // ====== Telegram context guard ======
 const tg = window.Telegram?.WebApp;
 if (!tg) {
