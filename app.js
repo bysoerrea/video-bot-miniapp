@@ -13,26 +13,30 @@
 const THUMB_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyXwDQzx31tpoE6gw55aNoAw57o6j9H6RYEY8EaA2HCY34cq74uI_8KrFv36W9wpHo/exec?action=thumb';
 
 async function loadThumbToImage(fileId, imgEl) {
-  // Optional: cache di sessionStorage supaya hemat hit
-  const cacheKey = `thumb:${fileId}`;
-  const cached = sessionStorage.getItem(cacheKey);
-  if (cached) {
-    imgEl.src = cached;
-    return;
+  try {
+    const cacheKey = `thumb:${fileId}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      imgEl.src = cached;
+      return;
+    }
+
+    // Fetch JSON Base64 dari GAS
+    const url = `${THUMB_ENDPOINT}?file_id=${encodeURIComponent(fileId)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!data.ok) throw new Error(`thumb error: ${data.error}`);
+
+    const dataUrl = `data:${data.mime};base64,${data.base64}`;
+    imgEl.src = dataUrl;
+
+    sessionStorage.setItem(cacheKey, dataUrl);
+  } catch (err) {
+    console.error('Gagal load thumbnail', err);
   }
-
-  const url = `${THUMB_ENDPOINT}?file_id=${encodeURIComponent(fileId)}`;
-  const res = await fetch(url, { method: 'GET' });
-  const data = await res.json();
-
-  if (!data.ok) throw new Error(`thumb error: ${data.error}`);
-
-  const dataUrl = `data:${data.mime};base64,${data.base64}`;
-  imgEl.src = dataUrl;
-
-  // Simpan cache untuk sesi ini
-  sessionStorage.setItem(cacheKey, dataUrl);
 }
+
 
 // ====== Telegram context guard ======
 const tg = window.Telegram?.WebApp;
@@ -112,22 +116,16 @@ const thumbFid = escapeHtml(v.thumb_file_id || "");
 
  // Taruh file_id thumbnail di data-thumb, tapi <img> kosong dulu
 return `
-  <div class="item" data-fid="${fid}" data-uid="${uid}" data-cap="${cap}" data-thumb="${thumbFid}">
-    <div class="media">
-      <img class="thumb" alt="thumbnail" loading="lazy">
-      <span class="badge">UID</span>
-    </div>
-    <div class="meta">
-      <div class="cap">🎬 ${cap}</div>
-      <div class="uid">🔔 ${uid}</div>
-      <div class="row">
-        ${sizeChip}
-        ${statusChip}
-        ${playBtn}
+    <div class="item" data-thumb="${escapeHtml(v.ThumbFileId || '')}">
+      <div class="media">
+        <img class="thumb" alt="thumbnail" loading="lazy">
+        <div class="caption">${fmtCaption(v.caption)}</div>
+      </div>
+      <div class="meta">
+        <span>${formatFileSize(v.file_size)}</span>
       </div>
     </div>
-  </div>
-`;
+  `;
 }
 
 function setLoading(append) {
@@ -197,19 +195,13 @@ function loadVideos(append = false) {
 
 // Ambil semua item baru yang belum di‐aspect‐ratio
 const newItems = videoList.querySelectorAll('.item:not([data-ar])');
-
 newItems.forEach(item => {
-  const fidThumb = item.dataset.thumb;
+  const fid = item.dataset.thumb;
   const imgEl = item.querySelector('.thumb');
-
-  // 🔄 Load thumbnail via proxy GAS
-  if (fidThumb && imgEl) {
-    loadThumbToImage(fidThumb, imgEl)
-      .catch(err => console.error("Gagal load thumb:", err));
+  if (fid && imgEl) {
+    loadThumbToImage(fid, imgEl);
   }
-
-  // Tetap set aspect ratio
-  initAspectFromThumb(item);
+  initAspectFromThumb(item); // kalau ada util AR
   item.dataset.ar = '1';
 });
 
