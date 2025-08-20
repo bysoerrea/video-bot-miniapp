@@ -14,6 +14,11 @@ const THUMB_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyXwDQzx31tpoE6g
 
 async function loadThumbToImage(fileId, imgEl) {
   try {
+    if (!fileId || fileId.length < 10) {
+      console.warn("Thumbnail file_id tidak valid:", fileId);
+      return;
+    }
+
     const cacheKey = `thumb:${fileId}`;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
@@ -21,21 +26,21 @@ async function loadThumbToImage(fileId, imgEl) {
       return;
     }
 
-    // Fetch JSON Base64 dari GAS
-    const url = `${THUMB_ENDPOINT}?file_id=${encodeURIComponent(fileId)}`;
+    const url = `${THUMB_ENDPOINT}&file_id=${encodeURIComponent(fileId)}`;
     const res = await fetch(url);
     const data = await res.json();
 
-    if (!data.ok) throw new Error(`thumb error: ${data.error}`);
+    if (!data.ok) throw new Error(`thumb error: ${data.error || 'Unknown error'}`);
+    if (!/^image\\//.test(data.mime)) throw new Error('Invalid MIME type');
 
     const dataUrl = `data:${data.mime};base64,${data.base64}`;
     imgEl.src = dataUrl;
-
     sessionStorage.setItem(cacheKey, dataUrl);
   } catch (err) {
     console.error('Gagal load thumbnail', err);
   }
 }
+
 // ====== Telegram context guard ======
 const tg = window.Telegram?.WebApp;
 if (!tg) {
@@ -91,7 +96,8 @@ function itemHTML(v) {
   const uid = escapeHtml(v.uniqueId || v.file_unique_id || "");
   const fid = escapeHtml(v.file_id || "");
   // Ambil file_id khusus thumbnail dari backend
-const thumbFid = escapeHtml(v.thumbnail || "");
+const thumbFid = escapeHtml(v.ThumbFileId || v.thumb_file_id || "");
+
 
   const MAX_BYTES = 19 * 1024 * 1024; // 50 MB limit
   let sizeChip = '';
