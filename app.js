@@ -91,7 +91,7 @@ function itemHTML(v) {
   const uid = escapeHtml(v.uniqueId || v.file_unique_id || "");
   const fid = escapeHtml(v.file_id || "");
   // Ambil file_id khusus thumbnail dari backend
-const thumbFid = escapeHtml(v.thumb_file_id || "");
+const thumbFid = escapeHtml(v.thumbnail || "");
 
   const MAX_BYTES = 19 * 1024 * 1024; // 50 MB limit
   let sizeChip = '';
@@ -114,7 +114,7 @@ const thumbFid = escapeHtml(v.thumb_file_id || "");
 
  // Taruh file_id thumbnail di data-thumb, tapi <img> kosong dulu
 return `
-    <div class="item" data-thumb="${escapeHtml(v.thumb_file_id || '')}">
+    <div class="item" data-thumb="${escapeHtml(v.thumbnail || '')}">
       <div class="media">
         <img class="thumb" alt="thumbnail" loading="lazy">
         <div class="caption">${fmtCaption(v.caption)}</div>
