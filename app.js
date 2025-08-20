@@ -114,7 +114,7 @@ const thumbFid = escapeHtml(v.thumb_file_id || "");
 
  // Taruh file_id thumbnail di data-thumb, tapi <img> kosong dulu
 return `
-    <div class="item" data-thumb="${escapeHtml(v.ThumbFileId || '')}">
+    <div class="item" data-thumb="${escapeHtml(v.thumb_file_id || '')}">
       <div class="media">
         <img class="thumb" alt="thumbnail" loading="lazy">
         <div class="caption">${fmtCaption(v.caption)}</div>
