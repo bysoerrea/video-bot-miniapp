@@ -31,7 +31,7 @@ async function loadThumbToImage(fileId, imgEl) {
     const data = await res.json();
 
     if (!data.ok) throw new Error(`thumb error: ${data.error || 'Unknown error'}`);
-    if (!/^image\\//.test(data.mime)) throw new Error('Invalid MIME type');
+    //if (!/^image\\//.test(data.mime)) throw new Error('Invalid MIME type');
 
     const dataUrl = `data:${data.mime};base64,${data.base64}`;
     imgEl.src = dataUrl;
