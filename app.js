@@ -125,45 +125,65 @@ function formatFileSize(bytes) {
   return Math.round(bytes / KB) + ' KB';
 }
 function itemHTML(v) {
+  console.log('[itemHTML] Start membuat HTML item untuk:', v);
+
+  // Step 1: Ambil & escape caption
   const cap = fmtCaption(v.caption);
+  console.log('[itemHTML] Caption setelah fmtCaption():', cap);
+
+  // Step 2: Ambil uniqueId / file_unique_id
   const uid = escapeHtml(v.uniqueId || v.file_unique_id || "");
+  console.log('[itemHTML] UID:', uid);
+
+  // Step 3: Ambil file_id utama
   const fid = escapeHtml(v.file_id || "");
-  // Ambil file_id khusus thumbnail dari backend
-const thumbFid = escapeHtml(v.ThumbFileId || v.thumb_file_id || "");
+  console.log('[itemHTML] file_id:', fid);
 
+  // Step 4: Ambil file_id khusus thumbnail
+  const thumbFid = escapeHtml(v.ThumbFileId || v.thumb_file_id || "");
+  console.log('[itemHTML] thumb_file_id:', thumbFid);
 
-  const MAX_BYTES = 19 * 1024 * 1024; // 50 MB limit
+  // Step 5: Inisialisasi chip
+  const MAX_BYTES = 19 * 1024 * 1024; // 50 MB limit (konstanta audit)
   let sizeChip = '';
   let statusChip = '';
   let playBtn = '';
 
+  // Step 6: Tentukan chip dan tombol play berdasarkan ukuran file
   if (v.file_size) {
+    console.log('[itemHTML] file_size terdeteksi:', v.file_size, `(${formatFileSize(v.file_size)})`);
     sizeChip = `<span class="chip-size">📦 ${formatFileSize(v.file_size)}</span>`;
     if (v.file_size > MAX_BYTES) {
+      console.log('[itemHTML] File > MAX_BYTES, tandai sebagai "File Besar"');
       statusChip = `<span class="chip error">File Besar, request di BOT</span>`;
     } else {
+      console.log('[itemHTML] File dalam batas aman, tandai Ready + tombol Play');
       statusChip = `<span class="chip">Ready</span>`;
       playBtn = `<button class="btn-play">▶️ Play</button>`;
     }
   } else {
-    // fallback kalau size tidak ada
+    console.log('[itemHTML] file_size tidak ada → fallback Ready + tombol Play');
     statusChip = `<span class="chip">Ready</span>`;
     playBtn = `<button class="btn-play">▶️ Play</button>`;
   }
 
- // Taruh file_id thumbnail di data-thumb, tapi <img> kosong dulu
-return `
+  // Step 7: Bangun string HTML akhir
+  const html = `
     <div class="item" data-thumb="${escapeHtml(v.thumbnail || '')}">
       <div class="media">
         <img class="thumb" alt="thumbnail" loading="lazy">
-        <div class="caption">${fmtCaption(v.caption)}</div>
+        <div class="caption">${cap}</div>
       </div>
       <div class="meta">
         <span>${formatFileSize(v.file_size)}</span>
       </div>
     </div>
   `;
+  console.log('[itemHTML] HTML final dibuat:', html);
+
+  return html;
 }
+
 
 function setLoading(append) {
   if (!append) {
