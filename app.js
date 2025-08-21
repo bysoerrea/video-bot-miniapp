@@ -35,7 +35,8 @@ async function loadThumbToImage(fileId, imgEl) {
     console.log("[Step 2] Tidak ada cache, lanjut fetch dari server");
 
     // 3. Bangun URL endpoint
-    const url = `${THUMB_ENDPOINT}&file_id=${encodeURIComponent(fileId)}`;
+    //const url = `${THUMB_ENDPOINT}&file_id=${encodeURIComponent(fileId)}`;
+    const url = `thumb:${fileId}`;
     console.log("[Step 3] Fetch URL:", url);
 
     // 4. Fetch data dari server
