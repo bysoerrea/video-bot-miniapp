@@ -19,6 +19,8 @@ async function loadThumbToImage(fileId, imgEl, placeholderUrl) {
   const safeIdPattern = /^[a-zA-Z0-9_-]{10,100}$/;
   if (!safeIdPattern.test(fileId)) {
     console.warn(`[ThumbLoader] fileId tidak valid. Fallback ke placeholder.`);
+    console.log(`[ThumbLoader] Debug fileId raw:`, JSON.stringify(fileId));
+
     imgEl.src = placeholderUrl;
     return;
   }
