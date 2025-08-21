@@ -13,45 +13,61 @@
 const THUMB_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyXwDQzx31tpoE6gw55aNoAw57o6j9H6RYEY8EaA2HCY34cq74uI_8KrFv36W9wpHo/exec?action=thumb';
 
 async function loadThumbToImage(fileId, imgEl, placeholderUrl) {
+  console.log(`[ThumbLoader] Mulai proses load thumbnail untuk fileId="${fileId}"`);
+
   // Step 1: Validasi fileId
   const safeIdPattern = /^[a-zA-Z0-9_-]{10,100}$/;
   if (!safeIdPattern.test(fileId)) {
+    console.warn(`[ThumbLoader] fileId tidak valid. Fallback ke placeholder.`);
     imgEl.src = placeholderUrl;
     return;
   }
+  console.log(`[ThumbLoader] fileId lolos validasi.`);
 
   // Step 2: Cek cache
   const cached = sessionStorage.getItem(`thumb:${fileId}`);
   if (cached) {
+    console.log(`[ThumbLoader] Cache ditemukan untuk ${fileId}, render langsung dari sessionStorage.`);
     imgEl.src = `data:image/jpeg;base64,${cached}`;
     return;
   }
+  console.log(`[ThumbLoader] Cache tidak ditemukan. Akan fetch dari backend.`);
 
   try {
     // Step 3: Bangun URL endpoint
     const url = `/thumb?fileId=${encodeURIComponent(fileId)}`;
+    console.log(`[ThumbLoader] URL endpoint: ${url}`);
 
     // Step 4: Fetch thumbnail
+    console.log(`[ThumbLoader] Mengirim request GET...`);
     const res = await fetch(url, { method: 'GET', credentials: 'same-origin' });
+    console.log(`[ThumbLoader] Response status: ${res.status}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     // Step 5: Parse JSON
     const { ok, mime, base64 } = await res.json();
+    console.log(`[ThumbLoader] Parsed JSON: ok=${ok}, mime=${mime}, base64Length=${base64?.length}`);
 
     // Step 6: Validasi response
     const allowedMimes = ['image/jpeg', 'image/png'];
     if (!ok || !allowedMimes.includes(mime) || base64.length > 300_000) {
+      console.error(`[ThumbLoader] Validasi gagal. MIME/size/ok tidak sesuai.`);
       throw new Error('Validation failed');
     }
+    console.log(`[ThumbLoader] Response valid. MIME dan size sesuai.`);
 
     // Step 7: Buat Data URL
     const dataUrl = `data:${mime};base64,${base64}`;
+    console.log(`[ThumbLoader] Data URL dibuat. Panjang total: ${dataUrl.length}`);
 
     // Step 8: Render & cache
     imgEl.src = dataUrl;
     sessionStorage.setItem(`thumb:${fileId}`, base64);
+    console.log(`[ThumbLoader] Thumbnail dirender dan disimpan ke cache.`);
+
   } catch (err) {
     // Rollback & fallback
+    console.error(`[ThumbLoader] Error: ${err.message}. Fallback ke placeholder.`);
     imgEl.src = placeholderUrl;
   }
 }
