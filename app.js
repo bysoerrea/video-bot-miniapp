@@ -14,32 +14,64 @@ const THUMB_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyXwDQzx31tpoE6g
 
 async function loadThumbToImage(fileId, imgEl) {
   try {
+    console.log("[loadThumbToImage] Start -> fileId:", fileId);
+
+    // 1. Validasi parameter
     if (!fileId || fileId.length < 10) {
-      console.warn("Thumbnail file_id tidak valid:", fileId);
+      console.warn("[Step 1] Thumbnail file_id tidak valid:", fileId);
       return;
     }
+    console.log("[Step 1] fileId valid, lanjut proses");
 
+    // 2. Cek cache di sessionStorage
     const cacheKey = `thumb:${fileId}`;
+    console.log("[Step 2] cacheKey:", cacheKey);
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
+      console.log("[Step 2] Thumbnail ditemukan di cache. Menggunakan cache.");
       imgEl.src = cached;
       return;
     }
+    console.log("[Step 2] Tidak ada cache, lanjut fetch dari server");
 
+    // 3. Bangun URL endpoint
     const url = `${THUMB_ENDPOINT}&file_id=${encodeURIComponent(fileId)}`;
+    console.log("[Step 3] Fetch URL:", url);
+
+    // 4. Fetch data dari server
     const res = await fetch(url);
+    console.log("[Step 4] Response status:", res.status, res.statusText);
+
+    // 5. Parse JSON
     const data = await res.json();
+    console.log("[Step 5] Response JSON:", data);
 
-    if (!data.ok) throw new Error(`thumb error: ${data.error || 'Unknown error'}`);
-    //if (!/^image\\//.test(data.mime)) throw new Error('Invalid MIME type');
+    // 6. Validasi status data.ok
+    if (!data.ok) {
+      console.error("[Step 6] Data error:", data.error || "Unknown error");
+      throw new Error(`thumb error: ${data.error || 'Unknown error'}`);
+    }
+    console.log("[Step 6] Data ok = true, lanjut proses base64");
 
+    // 7. Buat Data URL
     const dataUrl = `data:${data.mime};base64,${data.base64}`;
+    console.log("[Step 7] Data URL dibuat, MIME:", data.mime, "Length Base64:", data.base64?.length);
+
+    // 8. Set src elemen gambar
     imgEl.src = dataUrl;
+    console.log("[Step 8] imgEl.src sudah di-set");
+
+    // 9. Simpan ke cache
     sessionStorage.setItem(cacheKey, dataUrl);
+    console.log("[Step 9] Thumbnail disimpan ke sessionStorage");
+
+    console.log("[loadThumbToImage] Selesai tanpa error");
+
   } catch (err) {
-    console.error('Gagal load thumbnail', err);
+    console.error("[ERROR] Gagal load thumbnail:", err);
   }
 }
+
 
 // ====== Telegram context guard ======
 const tg = window.Telegram?.WebApp;
