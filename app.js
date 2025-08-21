@@ -27,16 +27,15 @@ async function loadThumbToImage(fileId, imgEl) {
     const cacheKey = `thumb:${fileId}`;
     console.log("[Step 2] cacheKey:", cacheKey);
     const cached = sessionStorage.getItem(cacheKey);
-    if (cached) {
-      console.log("[Step 2] Thumbnail ditemukan di cache. Menggunakan cache.");
-      imgEl.src = cached;
-      return;
-    }
+    if (cachedBase64) {
+      console.log("[Step 2] Thumbnail ditemukan di cache (base64 mentah)");
+      imgEl.src = `data:image/jpeg;base64,${cachedBase64}`;
+        return;
+      }
     console.log("[Step 2] Tidak ada cache, lanjut fetch dari server");
 
     // 3. Bangun URL endpoint
-    //const url = `${THUMB_ENDPOINT}&file_id=${encodeURIComponent(fileId)}`;
-    const url = `thumb:${fileId}`;
+    const url = `${THUMB_ENDPOINT}&file_id=${encodeURIComponent(fileId)}`;
     console.log("[Step 3] Fetch URL:", url);
 
     // 4. Fetch data dari server
