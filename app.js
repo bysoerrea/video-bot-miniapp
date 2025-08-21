@@ -12,65 +12,50 @@
   //});
 const THUMB_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyXwDQzx31tpoE6gw55aNoAw57o6j9H6RYEY8EaA2HCY34cq74uI_8KrFv36W9wpHo/exec?action=thumb';
 
-async function loadThumbToImage(fileId, imgEl) {
+async function loadThumbToImage(fileId, imgEl, placeholderUrl) {
+  // Step 1: Validasi fileId
+  const safeIdPattern = /^[a-zA-Z0-9_-]{10,100}$/;
+  if (!safeIdPattern.test(fileId)) {
+    imgEl.src = placeholderUrl;
+    return;
+  }
+
+  // Step 2: Cek cache
+  const cached = sessionStorage.getItem(`thumb:${fileId}`);
+  if (cached) {
+    imgEl.src = `data:image/jpeg;base64,${cached}`;
+    return;
+  }
+
   try {
-    console.log("[loadThumbToImage] Start -> fileId:", fileId);
+    // Step 3: Bangun URL endpoint
+    const url = `/thumb?fileId=${encodeURIComponent(fileId)}`;
 
-    // 1. Validasi parameter
-    if (!fileId || fileId.length < 10) {
-      console.warn("[Step 1] Thumbnail file_id tidak valid:", fileId);
-      return;
+    // Step 4: Fetch thumbnail
+    const res = await fetch(url, { method: 'GET', credentials: 'same-origin' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    // Step 5: Parse JSON
+    const { ok, mime, base64 } = await res.json();
+
+    // Step 6: Validasi response
+    const allowedMimes = ['image/jpeg', 'image/png'];
+    if (!ok || !allowedMimes.includes(mime) || base64.length > 300_000) {
+      throw new Error('Validation failed');
     }
-    console.log("[Step 1] fileId valid, lanjut proses");
 
-    // 2. Cek cache di sessionStorage
-    const cacheKey = `thumb:${fileId}`;
-    console.log("[Step 2] cacheKey:", cacheKey);
-    const cached = sessionStorage.getItem(cacheKey);
-    if (cachedBase64) {
-      console.log("[Step 2] Thumbnail ditemukan di cache (base64 mentah)");
-      imgEl.src = `data:image/jpeg;base64,${cachedBase64}`;
-        return;
-      }
-    console.log("[Step 2] Tidak ada cache, lanjut fetch dari server");
+    // Step 7: Buat Data URL
+    const dataUrl = `data:${mime};base64,${base64}`;
 
-    // 3. Bangun URL endpoint
-    const url = `${THUMB_ENDPOINT}&file_id=${encodeURIComponent(fileId)}`;
-    console.log("[Step 3] Fetch URL:", url);
-
-    // 4. Fetch data dari server
-    const res = await fetch(url);
-    console.log("[Step 4] Response status:", res.status, res.statusText);
-
-    // 5. Parse JSON
-    const data = await res.json();
-    console.log("[Step 5] Response JSON:", data);
-
-    // 6. Validasi status data.ok
-    if (!data.ok) {
-      console.error("[Step 6] Data error:", data.error || "Unknown error");
-      throw new Error(`thumb error: ${data.error || 'Unknown error'}`);
-    }
-    console.log("[Step 6] Data ok = true, lanjut proses base64");
-
-    // 7. Buat Data URL
-    const dataUrl = `data:${data.mime};base64,${data.base64}`;
-    console.log("[Step 7] Data URL dibuat, MIME:", data.mime, "Length Base64:", data.base64?.length);
-
-    // 8. Set src elemen gambar
+    // Step 8: Render & cache
     imgEl.src = dataUrl;
-    console.log("[Step 8] imgEl.src sudah di-set");
-
-    // 9. Simpan ke cache
-    sessionStorage.setItem(cacheKey, dataUrl);
-    console.log("[Step 9] Thumbnail disimpan ke sessionStorage");
-
-    console.log("[loadThumbToImage] Selesai tanpa error");
-
+    sessionStorage.setItem(`thumb:${fileId}`, base64);
   } catch (err) {
-    console.error("[ERROR] Gagal load thumbnail:", err);
+    // Rollback & fallback
+    imgEl.src = placeholderUrl;
   }
 }
+
 
 
 // ====== Telegram context guard ======
