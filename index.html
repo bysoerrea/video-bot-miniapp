@@ -2,31 +2,25 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>MiniApp Video Bot</title>
+  <title>Video Becek Becekan BOT</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="config.js"></script>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-
 </head>
-  
-
 <body>
   <pre id="debugPanel" style="max-height:200px;overflow:auto;font-size:12px;background:#111;color:#0f0;padding:8px;"></pre>
   <header>
-    <h1>📹 Daftar Video</h1>
+    <h1>📹 Daftar Video yang ada</h1>
     <div class="toolbar">
-      <input type="text" id="hashtagInput" placeholder="Filter hashtag (opsional)">
+      <input type="text" id="hashtagInput" placeholder="Filter hashtag (opsional) tanpa #">
       <button id="btnSearch">🔍 Cari</button>
     </div>
     <div id="topError" class="error" style="display:none;"></div>
   </header>
-
   <div id="videoList">⏳ Memuat data...</div>
   <div id="loader" class="loading" style="display:none;">⏳ Memuat halaman berikut...</div>
-
   <script src="app.js"></script>
-  <!-- <script src="app_backup.js"></script>-->
 </body>
 </html>
