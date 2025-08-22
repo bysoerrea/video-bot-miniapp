@@ -357,8 +357,7 @@ async function resolveFileUrl(fid) {
 async function playInline(item, fid) {
   try {
     btnSearch.disabled = true;
-    // Stop player lain
-    stopCurrentPlaying();
+    stopCurrentPlaying(); // hentikan player lain
 
     if (!fid || fid.length < 10) {
       renderError("file_id tidak valid dari backend.");
@@ -368,83 +367,105 @@ async function playInline(item, fid) {
     const media = item.querySelector(".media");
     const chip = item.querySelector(".chip");
     const btn = item.querySelector(".btn-play");
+    const imgEl = item.querySelector("img.thumb");
+
     if (chip) chip.textContent = "Loading...";
     if (btn) btn.textContent = "⏳";
 
-    // Dapatkan direct file URL (signed)
     const fileUrl = await resolveFileUrl(fid);
 
-    // Build <video>
     const poster = item.dataset.thumb || "";
     const videoEl = document.createElement("video");
     videoEl.setAttribute("playsinline", "");
     videoEl.setAttribute("preload", "metadata");
     videoEl.controls = true;
     videoEl.src = fileUrl;
-    videoEl.controlsList = 'nodownload'; // ⛔ sembunyikan tombol download
-    videoEl.addEventListener('contextmenu', e => e.preventDefault()); // ⛔ disable klik kanan
-
+    videoEl.controlsList = "nodownload";
+    videoEl.addEventListener("contextmenu", e => e.preventDefault());
     if (poster) videoEl.poster = poster;
 
-    // Swap UI
     item.classList.add("is-playing");
+    if (imgEl) {
+      imgEl.classList.remove("fade-in");
+      imgEl.classList.add("fade-out");
+      setTimeout(() => { imgEl.style.display = "none"; }, 400);
+    }
+
     media.innerHTML = "";
     media.appendChild(videoEl);
     bindAspectFromVideo(videoEl, media);
 
     if (chip) chip.textContent = "Playing";
-    if (btn) btn.textContent = "⏹ Stop";
-
-    // Auto play (best effort)
-    const playPromise = videoEl.play();
-    if (playPromise && typeof playPromise.then === "function") {
-      playPromise.catch(() => {/* ignore autoplay block */});
+    if (btn) {
+      btn.textContent = "⏹ Stop";
+      btn.onclick = () => {
+        stopItem(item);
+        restoreThumb(imgEl, btn, fid);
+      };
     }
 
-    // Events
-    videoEl.addEventListener("ended", () => stopItem(item));
+    const playPromise = videoEl.play();
+    if (playPromise && typeof playPromise.then === "function") {
+      playPromise.catch(() => {});
+    }
+
+    videoEl.addEventListener("ended", () => {
+      stopItem(item);
+      restoreThumb(imgEl, btn, fid);
+    });
+
     videoEl.addEventListener("error", () => {
       renderError("Gagal memutar video.");
       stopItem(item);
+      restoreThumb(imgEl, btn, fid);
     });
 
-    // Mark current
     currentPlayingItem = item;
+
   } catch (err) {
-  const msg = (err?.message || "").toLowerCase();
+    const msg = (err?.message || "").toLowerCase();
+    const debugEl = document.getElementById("debugPanel");
+    const debugText = debugEl ? debugEl.textContent.toLowerCase() : "";
 
-  // 🔹 Deteksi pesan "file is too big" dari backend
-  const debugEl = document.getElementById("debugPanel");
-  const debugText = debugEl ? debugEl.textContent.toLowerCase() : "";
-
-  if (msg.includes("file is too big") || debugText.includes("file is too big")) {
-    // Ganti tombol Play dengan teks
-    const btn = item.querySelector(".btn-play");
-    if (btn) {
-      btn.replaceWith(Object.assign(document.createElement("span"), {
-        className: "file-big",
-        textContent: ">20MB!!, cari dengan multi Hashtag di bot"
-      }));
+    if (msg.includes("file is too big") || debugText.includes("file is too big")) {
+      const btn = item.querySelector(".btn-play");
+      if (btn) {
+        btn.replaceWith(Object.assign(document.createElement("span"), {
+          className: "file-big",
+          textContent: ">2MB!!, cari dengan multi Hashtag di bot"
+        }));
+      }
+      const chip = item.querySelector(".chip");
+      if (chip) chip.textContent = "❌ Too large";
+      stopItem(item);
+      return;
     }
 
-    // Ubah chip status
-    const chip = item.querySelector(".chip");
-    if (chip) chip.textContent = "❌ Too large";
-
-    // Stop player / reset media
+    renderError(err.message || "Tidak bisa memuat video.");
     stopItem(item);
 
-    // Lewati popup error untuk case ini
-    return;
-  }
-
-  // Default: error lain tetap lewat jalur lama
-  renderError(err.message || "Tidak bisa memuat video.");
-  stopItem(item);
-} finally {
+  } finally {
     btnSearch.disabled = false;
   }
 }
+
+// Helper untuk mengembalikan thumbnail + tombol
+function restoreThumb(imgEl, btn, fid) {
+  if (imgEl) {
+    imgEl.style.display = "";
+    imgEl.classList.remove("fade-out");
+    // Force reflow biar animasi kebaca browser
+    void imgEl.offsetWidth;
+    imgEl.classList.add("fade-in");
+  }
+  if (btn) {
+    btn.textContent = "▶️ Play";
+    btn.onclick = () => playInline(btn.closest(".item"), fid);
+  }
+}
+
+
+
 // ==== Aspect Ratio Helpers ====
 function setAspectFromMedia(el, w, h) {
   if (w && h) el.style.setProperty('--ar', `${w} / ${h}`);
