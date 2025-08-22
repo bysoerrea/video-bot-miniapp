@@ -1,6 +1,5 @@
 // 🔒 Blokir klik kanan di seluruh halaman
   //document.addEventListener('contextmenu', e => e.preventDefault());
-
   // (Opsional) Blokir shortcut save/inspect umum di desktop
   //document.addEventListener('keydown', e => {
     // Ctrl+S, Ctrl+U, Ctrl+Shift+I, F12
@@ -11,12 +10,10 @@
     //}
   //});
 const THUMB_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyXwDQzx31tpoE6gw55aNoAw57o6j9H6RYEY8EaA2HCY34cq74uI_8KrFv36W9wpHo/exec?action=thumb';
-
 async function loadThumbToImage(idOrUrl, imgEl, placeholderUrl) {
   try {
     const initData = tg?.initData || "";
     console.log(`[ThumbLoader] Start. raw=`, idOrUrl);
-
     // 1) Tentukan URL endpoint yang benar
     let urlObj;
     if (/^https?:\/\//i.test(idOrUrl)) {
@@ -34,12 +31,10 @@ async function loadThumbToImage(idOrUrl, imgEl, placeholderUrl) {
       urlObj = new URL(`${BASE_URL}?action=thumb&file_id=${encodeURIComponent(idOrUrl)}`);
       console.log(`[ThumbLoader] Bangun URL dari file_id.`, urlObj.href);
     }
-
     // 2) Tambahkan initData selalu (wajib untuk backend yang aman)
     if (initData) {
       urlObj.searchParams.set('initData', initData);
     }
-
     // 3) Cek cache: kunci pakai file_id jika ada, kalau tidak pakai URL penuh
     const cacheKey = (() => {
       const fid = urlObj.searchParams.get('file_id');
@@ -51,12 +46,10 @@ async function loadThumbToImage(idOrUrl, imgEl, placeholderUrl) {
       imgEl.src = `data:image/jpeg;base64,${cached}`;
       return;
     }
-
     // 4) Fetch JSON ke backend GAS
     console.log(`[ThumbLoader] Fetch → ${urlObj.href}`);
     const res = await fetch(urlObj.href, { method: 'GET' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
     // 5) Parse & validasi
     const { ok, mime, base64 } = await res.json();
     const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -73,7 +66,6 @@ async function loadThumbToImage(idOrUrl, imgEl, placeholderUrl) {
     if (placeholderUrl) imgEl.src = placeholderUrl;
   }
 }
-
 // ====== Telegram context guard ======
 const tg = window.Telegram?.WebApp;
 if (!tg) {
@@ -81,7 +73,6 @@ if (!tg) {
   throw new Error("Telegram WebApp not found");
 }
 tg.ready();
-
 // ====== State ======
 let currentPage = 1;
 let totalPages = 1;
@@ -89,19 +80,16 @@ let currentHashtag = "";
 let isLoading = false;
 const seenIds = new Set();
 let currentPlayingItem = null;
-
 // ====== Elements ======
 const videoList = document.getElementById("videoList");
 const loader = document.getElementById("loader");
 const btnSearch = document.getElementById("btnSearch");
 const inputHashtag = document.getElementById("hashtagInput");
 const topError = document.getElementById("topError");
-
 btnSearch.addEventListener("click", applyFilter);
 inputHashtag.addEventListener("keydown", (e) => {
   if (e.key === "Enter") applyFilter();
 });
-
 // ====== Utils ======
 function escapeHtml(s) {
   if (!s) return "";
@@ -125,32 +113,52 @@ function formatFileSize(bytes) {
   return Math.round(bytes / KB) + ' KB';
 }
 function itemHTML(v) {
+  const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
   const cap = fmtCaption(v.caption);
   const fid = escapeHtml(v.file_id || "");
   const thumbUrl = escapeHtml(v.thumbnail || "");
-
-  // Atur chip size/status dan tombol Play
+  const uniqId = escapeHtml(v.file_Unique_Id || ""); // ⬅️ ambil Unique ID
   const sizeStr = formatFileSize(v.file_size);
-  let chipHtml = `<span class="chip">Ready</span>`;
-  let playBtnHtml = `<button class="btn-play">▶️ Play</button>`;
-
+  let chipHtml, playBtnHtml;
+  if (v.file_size > MAX_BYTES) {
+    // File besar → tampilkan pesan peringatan & tanpa tombol Play
+    chipHtml = `<span class="chip error">>2MB!!, cari dengan multi Hashtag di bot</span>`;
+    playBtnHtml = "";
+  } else {
+    // File aman → chip Ready + tombol Play
+    chipHtml = `<span class="chip">Ready</span>`;
+    playBtnHtml = `<button class="btn-play">▶️ Play</button>`;
+  }
   return `
     <div class="item" data-fid="${fid}" data-thumb="${thumbUrl}">
       <div class="media">
         <img class="thumb" alt="thumbnail" loading="lazy">
-        <div class="caption">${cap}</div>
       </div>
       <div class="meta">
+        <div class="caption">${cap}</div>
         <span class="chip-size">📦 ${sizeStr}</span>
         ${chipHtml}
         ${playBtnHtml}
       </div>
+      <button class="unique-id-btn" data-uid="${uniqId}" title="Klik untuk copy">
+          🆔 ${uniqId}
+        </button>
     </div>
   `;
 }
-
-
-
+document.addEventListener("click", function (e) {
+  if (e.target.classList.contains("unique-id-btn")) {
+    const uid = e.target.getAttribute("data-uid");
+    navigator.clipboard.writeText(uid).then(() => {
+      e.target.textContent = "✅ Copied!";
+      setTimeout(() => {
+        e.target.textContent = `🆔 ${uid}`;
+      }, 1500);
+    }).catch(err => {
+      console.error("Gagal copy Unique ID:", err);
+    });
+  }
+});
 function setLoading(append) {
   if (!append) {
     videoList.innerHTML = "⏳ Memuat...";
@@ -167,20 +175,17 @@ function renderError(msg) {
   topError.style.display = "block";
   setTimeout(() => { topError.style.display = "none"; }, 4000);
 }
-
 // ====== Data fetch & render ======
 function loadVideos(append = false) {
   if (isLoading) return;
   isLoading = true;
   setLoading(append);
-
   const initData = tg.initData || "";
   if (!initData) {
     videoList.innerHTML = `<div class="error">❌ Init data Telegram tidak ditemukan. Buka lewat Mini App.</div>`;
     clearLoading();
     return;
   }
-
   const url = `${BASE_URL}?action=getvideos&page=${currentPage}&limit=10&hashtag=${encodeURIComponent(currentHashtag)}&initData=${encodeURIComponent(initData)}`;
   fetch(url)
     .then(res => res.text())
@@ -196,9 +201,7 @@ function loadVideos(append = false) {
         return;
       }
       totalPages = data.totalPages || 1;
-
       if (!append) videoList.innerHTML = "";
-
       const items = Array.isArray(data.data) ? data.data : [];
       const html = [];
       for (const v of items) {
@@ -207,7 +210,6 @@ function loadVideos(append = false) {
         if (uid) seenIds.add(uid);
         html.push(itemHTML(v));
       }
-
       if (html.length === 0 && currentPage === 1 && seenIds.size === 0) {
         videoList.innerHTML = "😔 Tidak ada video.";
         return;
@@ -215,7 +217,6 @@ function loadVideos(append = false) {
       if (html.length > 0) {
   videoList.insertAdjacentHTML("beforeend", html.join(""));
 }
-
 // Ambil semua item baru yang belum di‐aspect‐ratio
 const newItems = videoList.querySelectorAll('.item:not([data-ar])');
 newItems.forEach(item => {
@@ -227,14 +228,12 @@ newItems.forEach(item => {
   initAspectFromThumb(item); // kalau ada util AR
   item.dataset.ar = '1';
 });
-
     })
     .catch(err => {
       videoList.innerHTML = `<div class="error">❌ ${escapeHtml(err.message || "Gagal memuat")}</div>`;
     })
     .finally(clearLoading);
 }
-
 function applyFilter() {
   currentHashtag = inputHashtag.value.trim();
   currentPage = 1;
@@ -243,7 +242,6 @@ function applyFilter() {
   stopCurrentPlaying();
   loadVideos(false);
 }
-
 // Infinite scroll
 window.addEventListener("scroll", () => {
   if (isLoading) return;
@@ -253,7 +251,6 @@ window.addEventListener("scroll", () => {
     loadVideos(true);
   }
 });
-
 // ====== Inline player ======
 videoList.addEventListener("click", (e) => {
   const btn = e.target.closest(".btn-play");
@@ -270,13 +267,11 @@ videoList.addEventListener("click", (e) => {
   }
   playInline(item, fid);
 });
-
 function stopCurrentPlaying() {
   if (!currentPlayingItem) return;
   stopItem(currentPlayingItem);
   currentPlayingItem = null;
 }
-
 function stopItem(item) {
   item.classList.remove("is-playing");
   const media = item.querySelector(".media");
@@ -312,66 +307,48 @@ function appendDebug(msg) {
   const el = document.getElementById("debugPanel");
   if (el) el.textContent += `[${new Date().toISOString()}] ${msg}\n`;
 }
-
 async function resolveFileUrl(fid) {
   const cacheKey = `video:${fid}`;
-
   // 1) Cek cache dulu
   const cached = sessionStorage.getItem(cacheKey);
   if (cached) {
     console.log("[Cache] Video hit:", fid);
     return cached; // langsung return data URL base64
   }
-
   console.log("[Cache] Video MISS, fetch dari backend:", fid);
-
   // 2) Kalau belum ada di cache, fetch dari backend
   const initData = tg.initData || "";
   const url = `${BASE_URL}?action=playvideo&file_id=${encodeURIComponent(fid)}&initData=${encodeURIComponent(initData)}`;
-
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
   const data = await res.json();
   if (!data.ok || !data.base64) throw new Error(data.error || "fail");
-
   const dataUrl = `data:${data.mime};base64,${data.base64}`;
-
   // 3) Simpan ke sessionStorage
   try {
     sessionStorage.setItem(cacheKey, dataUrl);
   } catch (err) {
     console.warn("[Cache] Gagal simpan ke sessionStorage:", err);
   }
-
   return dataUrl;
 }
-
-
 //end debug sementara
-
-
 async function playInline(item, fid) {
   try {
     btnSearch.disabled = true;
-    stopCurrentPlaying(); // hentikan player lain
-
+    stopCurrentPlaying();
     if (!fid || fid.length < 10) {
       renderError("file_id tidak valid dari backend.");
       return;
     }
-
     const media = item.querySelector(".media");
-    const chip = item.querySelector(".chip");
-    const btn = item.querySelector(".btn-play");
-    const imgEl = item.querySelector("img.thumb");
-
+    const chip  = item.querySelector(".chip");
+    const btn   = item.querySelector(".btn-play");
     if (chip) chip.textContent = "Loading...";
-    if (btn) btn.textContent = "⏳";
-
-    const fileUrl = await resolveFileUrl(fid);
-
-    const poster = item.dataset.thumb || "";
+    if (btn)  btn.textContent  = "⏳";
+    const fileUrl  = await resolveFileUrl(fid);
+    const poster   = item.dataset.thumb || "";
+    const thumbFid = item.dataset.thumb || ""; // ID/URL thumbnail untuk restore
     const videoEl = document.createElement("video");
     videoEl.setAttribute("playsinline", "");
     videoEl.setAttribute("preload", "metadata");
@@ -380,94 +357,92 @@ async function playInline(item, fid) {
     videoEl.controlsList = "nodownload";
     videoEl.addEventListener("contextmenu", e => e.preventDefault());
     if (poster) videoEl.poster = poster;
-
     item.classList.add("is-playing");
-    if (imgEl) {
-      imgEl.classList.remove("fade-in");
-      imgEl.classList.add("fade-out");
-      setTimeout(() => { imgEl.style.display = "none"; }, 400);
-    }
-
+    // Hapus isi media dan masukkan video
     media.innerHTML = "";
     media.appendChild(videoEl);
     bindAspectFromVideo(videoEl, media);
-
     if (chip) chip.textContent = "Playing";
     if (btn) {
       btn.textContent = "⏹ Stop";
       btn.onclick = () => {
         stopItem(item);
-        restoreThumb(imgEl, btn, fid);
+        restoreThumb(null, btn, fid); // imgEl null → cari ulang & load thumb
       };
     }
-
     const playPromise = videoEl.play();
     if (playPromise && typeof playPromise.then === "function") {
       playPromise.catch(() => {});
     }
-
+    // Event selesai play
     videoEl.addEventListener("ended", () => {
       stopItem(item);
-      restoreThumb(imgEl, btn, fid);
+      restoreThumb(null, btn, fid);
     });
-
+    // Event error
     videoEl.addEventListener("error", () => {
       renderError("Gagal memutar video.");
       stopItem(item);
-      restoreThumb(imgEl, btn, fid);
+      restoreThumb(null, btn, fid);
     });
-
     currentPlayingItem = item;
-
   } catch (err) {
-    const msg = (err?.message || "").toLowerCase();
-    const debugEl = document.getElementById("debugPanel");
-    const debugText = debugEl ? debugEl.textContent.toLowerCase() : "";
-
-    if (msg.includes("file is too big") || debugText.includes("file is too big")) {
-      const btn = item.querySelector(".btn-play");
-      if (btn) {
-        btn.replaceWith(Object.assign(document.createElement("span"), {
-          className: "file-big",
-          textContent: ">2MB!!, cari dengan multi Hashtag di bot"
-        }));
-      }
-      const chip = item.querySelector(".chip");
-      if (chip) chip.textContent = "❌ Too large";
-      stopItem(item);
-      return;
+  const msg = (err?.message || "").toLowerCase();
+  const debugEl = document.getElementById("debugPanel");
+  const debugText = debugEl ? debugEl.textContent.toLowerCase() : "";
+  if (msg.includes("file is too big") || debugText.includes("file is too big")) {
+    // Ganti tombol Play dengan teks peringatan tunggal
+    const btn = item.querySelector(".btn-play");
+    if (btn) {
+      btn.replaceWith(Object.assign(document.createElement("span"), {
+        className: "file-big",
+        textContent: "filenya besar, cari dengan ID di BOT"
+      }));
     }
-
-    renderError(err.message || "Tidak bisa memuat video.");
     stopItem(item);
-
-  } finally {
+    return; // keluar tanpa menampilkan error popup
+  }
+  renderError(err.message || "Tidak bisa memuat video.");
+  stopItem(item);
+} finally {
     btnSearch.disabled = false;
   }
 }
-
-// Helper untuk mengembalikan thumbnail + tombol
-function restoreThumb(imgEl, btn, fid) {
-  if (imgEl) {
-    imgEl.style.display = "";
-    imgEl.classList.remove("fade-out");
-    // Force reflow biar animasi kebaca browser
-    void imgEl.offsetWidth;
-    imgEl.classList.add("fade-in");
+// Helper untuk mengembalikan thumbnail + tombol Play
+function restoreThumb(imgEl, btn, fidVideo) {
+  const item     = btn ? btn.closest(".item") : imgEl?.closest(".item");
+  const media    = item?.querySelector(".media");
+  const thumbFid = item?.dataset.thumb || ""; // ID/URL thumbnail
+  if (!media) return;
+  // Cari atau buat <img> thumbnail
+  let thumbImg = media.querySelector("img.thumb");
+  if (!thumbImg) {
+    thumbImg = document.createElement("img");
+    thumbImg.className = "thumb";
+    thumbImg.alt = "thumbnail";
+    thumbImg.loading = "lazy";
+    media.innerHTML = "";
+    media.appendChild(thumbImg);
   }
+  // Animasi fade-in
+  thumbImg.style.display = "";
+  thumbImg.classList.remove("fade-out");
+  void thumbImg.offsetWidth;
+  thumbImg.classList.add("fade-in");
+  // Muat ulang thumbnail
+  if (thumbFid) {
+    loadThumbToImage(thumbFid, thumbImg);
+  }
+  // Pulihkan tombol Play
   if (btn) {
     btn.textContent = "▶️ Play";
-    btn.onclick = () => playInline(btn.closest(".item"), fid);
+    btn.onclick = () => playInline(item, fidVideo);
   }
 }
-
-
-
 // ==== Aspect Ratio Helpers ====
 function setAspectFromMedia(el, w, h) {
   if (w && h) el.style.setProperty('--ar', `${w} / ${h}`);
 }
-
 function initAspectFromThumb(item) {
   const media = item.querySelector('.media');
   const img = item.querySelector('.thumb');
@@ -482,11 +457,9 @@ function initAspectFromThumb(item) {
   }
   // ⛔ Disable klik kanan pada thumbnail
   img.addEventListener('contextmenu', e => e.preventDefault());
-
   // ✅ Pastikan object-fit terjaga (drop-in style)
   img.style.objectFit = 'contain';
 }
-
 function bindAspectFromVideo(videoEl, media) {
   videoEl.addEventListener('loadedmetadata', () =>
     setAspectFromMedia(media, videoEl.videoWidth, videoEl.videoHeight)
@@ -495,7 +468,5 @@ function bindAspectFromVideo(videoEl, media) {
   videoEl.controlsList = 'nodownload';
   videoEl.addEventListener('contextmenu', e => e.preventDefault());
 }
-
-
 // ====== Boot ======
 loadVideos(false);
