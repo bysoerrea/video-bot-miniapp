@@ -317,14 +317,39 @@ function appendDebug(msg) {
 }
 
 async function resolveFileUrl(fid) {
+  const cacheKey = `video:${fid}`;
+
+  // 1) Cek cache dulu
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) {
+    console.log("[Cache] Video hit:", fid);
+    return cached; // langsung return data URL base64
+  }
+
+  console.log("[Cache] Video MISS, fetch dari backend:", fid);
+
+  // 2) Kalau belum ada di cache, fetch dari backend
   const initData = tg.initData || "";
   const url = `${BASE_URL}?action=playvideo&file_id=${encodeURIComponent(fid)}&initData=${encodeURIComponent(initData)}`;
+
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
   const data = await res.json();
   if (!data.ok || !data.base64) throw new Error(data.error || "fail");
-  return `data:${data.mime};base64,${data.base64}`;
+
+  const dataUrl = `data:${data.mime};base64,${data.base64}`;
+
+  // 3) Simpan ke sessionStorage
+  try {
+    sessionStorage.setItem(cacheKey, dataUrl);
+  } catch (err) {
+    console.warn("[Cache] Gagal simpan ke sessionStorage:", err);
+  }
+
+  return dataUrl;
 }
+
 
 //end debug sementara
 
