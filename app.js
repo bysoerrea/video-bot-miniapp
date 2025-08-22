@@ -351,23 +351,11 @@ function appendDebug(msg) {
 }
 
 async function resolveFileUrl(fid) {
-  appendDebug(`START fid=${fid}`);
   const initData = tg.initData || "";
-  const url = `${BASE_URL}?action=getfileurl&file_id=${encodeURIComponent(fid)}&initData=${encodeURIComponent(initData)}`;
-  appendDebug(`REQ ${url.slice(0,80)}...`);
-
-  const text = await (await fetch(url)).text();
-  appendDebug(`RAW[0..200]=${stripBomAndTrim(text).slice(0,200)}`);
-
-  const parsed = tolerantJsonUrlParse(text);
-  if (parsed) {
-    appendDebug(`OK parsed=${parsed}`);
-    return parsed;
-  }
-
-  appendDebug(`FAIL parse file url`);
-  throw new Error("Respon getfileurl tidak valid");
+  // Kembalikan URL langsung ke proxy video aman
+  return `${BASE_URL}?action=playvideo&file_id=${encodeURIComponent(fid)}&initData=${encodeURIComponent(initData)}`;
 }
+
 //end debug sementara
 
 
