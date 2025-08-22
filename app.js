@@ -140,7 +140,7 @@ function itemHTML(v) {
         ${chipHtml}
         ${playBtnHtml}
       </div>
-      <button class="unique-id-btn" data-uid="${uniqId}" title="Klik untuk copy">
+      <button class="unique-id-btn" data-uid="${uniqId}" title="Klik untuk copy id Video">
           🆔 ${uniqId}
         </button>
     </div>
@@ -149,7 +149,9 @@ function itemHTML(v) {
 document.addEventListener("click", function (e) {
   if (e.target.classList.contains("unique-id-btn")) {
     const uid = e.target.getAttribute("data-uid");
-    navigator.clipboard.writeText(uid).then(() => {
+    const copyText = `id:${uid}`; // tambahkan prefix id:
+
+    navigator.clipboard.writeText(copyText).then(() => {
       e.target.textContent = "✅ Copied!";
       setTimeout(() => {
         e.target.textContent = `🆔 ${uid}`;
@@ -159,6 +161,7 @@ document.addEventListener("click", function (e) {
     });
   }
 });
+
 function setLoading(append) {
   if (!append) {
     videoList.innerHTML = "⏳ Memuat...";
