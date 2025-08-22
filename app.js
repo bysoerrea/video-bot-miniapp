@@ -318,8 +318,14 @@ function appendDebug(msg) {
 
 async function resolveFileUrl(fid) {
   const initData = tg.initData || "";
-  // Kembalikan URL langsung ke proxy video aman
-  return `${BASE_URL}?action=playvideo&file_id=${encodeURIComponent(fid)}&initData=${encodeURIComponent(initData)}`;
+  const url = `${BASE_URL}?action=playvideo&file_id=${encodeURIComponent(fid)}&initData=${encodeURIComponent(initData)}`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  if (!data.ok || !data.base64) throw new Error(data.error || "fail");
+
+  return `data:${data.mime};base64,${data.base64}`;
 }
 
 //end debug sementara
