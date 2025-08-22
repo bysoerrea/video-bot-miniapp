@@ -74,9 +74,6 @@ async function loadThumbToImage(idOrUrl, imgEl, placeholderUrl) {
   }
 }
 
-
-
-
 // ====== Telegram context guard ======
 const tg = window.Telegram?.WebApp;
 if (!tg) {
