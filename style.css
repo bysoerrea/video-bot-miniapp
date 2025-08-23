@@ -47,6 +47,13 @@ button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
+.hashtag {
+    color: var(--accent-color, #3390ec);
+    cursor: pointer;
+}
+.hashtag:hover {
+    text-decoration: underline;
+}
 
 .error {
     color: var(--error);
