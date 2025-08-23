@@ -132,14 +132,13 @@ function formatFileSize(bytes) {
     return Math.round(bytes / KB) + ' KB';
 }
 function itemHTML(v) {
-    const MAX_BYTES = 2 * 1024 * 1024;
-    // 2 MB
+    const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
     const cap = fmtCaption(v.caption);
     const fid = escapeHtml(v.file_id || "");
     const thumbUrl = escapeHtml(v.thumbnail || "");
     const uniqId = escapeHtml(v.file_Unique_Id || "");
-    // ⬅️ ambil Unique ID
     const sizeStr = formatFileSize(v.file_size);
+
     let chipHtml, playBtnHtml;
     if (v.file_size > MAX_BYTES) {
         // File besar → tampilkan pesan peringatan & tanpa tombol Play
@@ -150,8 +149,14 @@ function itemHTML(v) {
         chipHtml = `<span class="chip">Ready</span>`;
         playBtnHtml = `<button class="btn-play">▶️ Play</button>`;
     }
+
+    // ✅ Tambahkan data-w dan data-h untuk simpan dimensi asli video
     return `
-    <div class="item" data-fid="${fid}" data-thumb="${thumbUrl}">
+    <div class="item" 
+         data-fid="${fid}" 
+         data-thumb="${thumbUrl}" 
+         data-w="${v.width || ''}" 
+         data-h="${v.height || ''}">
       <div class="media">
         <img class="thumb" alt="thumbnail" loading="lazy">
       </div>
@@ -163,10 +168,23 @@ function itemHTML(v) {
       </div>
       <button class="unique-id-btn" data-uid="${uniqId}" title="Klik untuk copy id Video">
           🆔 ${uniqId}
-        </button>
+      </button>
     </div>
-  `;
+    `;
 }
+
+function applyInitialAspectRatio(itemEl) {
+    const w = parseInt(itemEl.dataset.w, 10);
+    const h = parseInt(itemEl.dataset.h, 10);
+    if (w > 0 && h > 0) {
+        const mediaEl = itemEl.querySelector('.media');
+        if (mediaEl) {
+            mediaEl.style.setProperty('--ar', `${w} / ${h}`);
+            console.log(`[AR-Init] ${w}x${h} => ${(w/h).toFixed(3)}`);
+        }
+    }
+}
+
 document.addEventListener("click", function(e) {
     if (e.target.classList.contains("unique-id-btn")) {
         const uid = e.target.getAttribute("data-uid");
@@ -207,69 +225,82 @@ function renderError(msg) {
     , 4000);
 }
 // ====== Data fetch & render ======
-function loadVideos(append=false) {
-    if (isLoading)
-        return;
+function loadVideos(append = false) {
+    if (isLoading) return;
     isLoading = true;
     setLoading(append);
+
     const initData = tg.initData || "";
     if (!initData) {
         videoList.innerHTML = `<div class="error">❌ Init data Telegram tidak ditemukan. Buka lewat Mini App.</div>`;
         clearLoading();
         return;
     }
+
     const url = `${BASE_URL}?action=getvideos&page=${currentPage}&limit=10&hashtag=${encodeURIComponent(currentHashtag)}&initData=${encodeURIComponent(initData)}`;
-    fetch(url).then(res => res.text()).then(txt => {
-        let data;
-        try {
-            data = JSON.parse(txt);
-        } catch (e) {
-            videoList.innerHTML = `<div class="error">❌ Respon server bukan JSON valid.</div>`;
-            return;
-        }
-        if (!data.success) {
-            videoList.innerHTML = `<div class="error">❌ ${escapeHtml(data.error || "Error server")}</div>`;
-            return;
-        }
-        totalPages = data.totalPages || 1;
-        if (!append)
-            videoList.innerHTML = "";
-        const items = Array.isArray(data.data) ? data.data : [];
-        const html = [];
-        for (const v of items) {
-            const uid = v.uniqueId || v.file_unique_id || "";
-            if (uid && seenIds.has(uid))
-                continue;
-            if (uid)
-                seenIds.add(uid);
-            html.push(itemHTML(v));
-        }
-        if (html.length === 0 && currentPage === 1 && seenIds.size === 0) {
-            videoList.innerHTML = "😔 Tidak ada video.";
-            return;
-        }
-        if (html.length > 0) {
-            videoList.insertAdjacentHTML("beforeend", html.join(""));
-        }
-        // Ambil semua item baru yang belum di‐aspect‐ratio
-        const newItems = videoList.querySelectorAll('.item:not([data-ar])');
-        newItems.forEach(item => {
-            const fid = item.dataset.thumb;
-            const imgEl = item.querySelector('.thumb');
-            if (fid && imgEl) {
-                loadThumbToImage(fid, imgEl);
+
+    fetch(url)
+        .then(res => res.text())
+        .then(txt => {
+            let data;
+            try {
+                data = JSON.parse(txt);
+            } catch (e) {
+                videoList.innerHTML = `<div class="error">❌ Respon server bukan JSON valid.</div>`;
+                return;
             }
-            initAspectFromThumb(item);
-            // kalau ada util AR
-            item.dataset.ar = '1';
-        }
-        );
-    }
-    ).catch(err => {
-        videoList.innerHTML = `<div class="error">❌ ${escapeHtml(err.message || "Gagal memuat")}</div>`;
-    }
-    ).finally(clearLoading);
+
+            if (!data.success) {
+                videoList.innerHTML = `<div class="error">❌ ${escapeHtml(data.error || "Error server")}</div>`;
+                return;
+            }
+
+            totalPages = data.totalPages || 1;
+            if (!append) videoList.innerHTML = "";
+
+            const items = Array.isArray(data.data) ? data.data : [];
+            const html = [];
+
+            for (const v of items) {
+                const uid = v.uniqueId || v.file_unique_id || "";
+                if (uid && seenIds.has(uid)) continue;
+                if (uid) seenIds.add(uid);
+                html.push(itemHTML(v));
+            }
+
+            if (html.length === 0 && currentPage === 1 && seenIds.size === 0) {
+                videoList.innerHTML = "😔 Tidak ada video.";
+                return;
+            }
+
+            if (html.length > 0) {
+                videoList.insertAdjacentHTML("beforeend", html.join(""));
+            }
+
+            // Ambil semua item baru yang belum di‐aspect‐ratio
+            const newItems = videoList.querySelectorAll('.item:not([data-ar])');
+            newItems.forEach(item => {
+                // 🚀 Set aspect ratio langsung dari data-w/h
+                applyInitialAspectRatio(item);
+
+                const fid = item.dataset.thumb;
+                const imgEl = item.querySelector('.thumb');
+                if (fid && imgEl) {
+                    loadThumbToImage(fid, imgEl);
+                }
+
+                // Fallback jika data-w/h tidak ada
+                initAspectFromThumb(item);
+
+                item.dataset.ar = '1';
+            });
+        })
+        .catch(err => {
+            videoList.innerHTML = `<div class="error">❌ ${escapeHtml(err.message || "Gagal memuat")}</div>`;
+        })
+        .finally(clearLoading);
 }
+
 function applyFilter() {
     currentHashtag = inputHashtag.value.trim();
     currentPage = 1;
