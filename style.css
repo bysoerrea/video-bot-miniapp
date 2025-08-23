@@ -1,75 +1,87 @@
-:root { --radius:8px; }
+:root {
+    --radius: 8px;
+}
+
 body {
-  font-family: system-ui, sans-serif;
-  margin: 0; padding: 12px;
-  background: var(--bg); color: var(--text);
+    font-family: system-ui, sans-serif;
+    margin: 0;
+    padding: 12px;
+    background: var(--bg);
+    color: var(--text);
 }
-header { margin-bottom: 10px; }
-h1 { font-size: 18px; margin: 0 0 8px; }
-.toolbar { display: flex; gap: 8px; align-items: center; }
+
+header {
+    margin-bottom: 10px;
+}
+
+h1 {
+    font-size: 18px;
+    margin: 0 0 8px;
+}
+
+.toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 input[type="text"] {
-  flex: 1; padding: 8px 10px; border-radius: 6px;
-  border: 1px solid var(--border); background: var(--input-bg); color: var(--input-text);
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--input-bg);
+    color: var(--input-text);
 }
+
 button {
-  padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border);
-  background: var(--btn-bg); color: var(--btn-text); cursor: pointer;
-}
-button:disabled { opacity: 0.6; cursor: not-allowed; }
-.error { color: var(--error); margin-top: 8px; }
-.loading { text-align:center; padding:10px; opacity:0.8; }
-#videoList { display:flex; flex-direction:column; gap:12px; margin-top:10px; }
-.item { border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:var(--card-bg); }
-.media { aspect-ratio:16/9; background:#000; position:relative; }
-.thumb { width:100%; height:100%; object-fit:cover; display:block; }
-.placeholder { display:flex; align-items:center; justify-content:center; color:#888; font-size:48px; height:100%; }
-.badge { position:absolute; top:8px; left:8px; background:rgba(0,0,0,0.5); color:#fff; padding:2px 6px; border-radius:999px; font-size:12px; }
-.meta { padding:10px; }
-.cap { margin-bottom:6px; }
-.uid { opacity:0.8; font-size:12px; }
-.row { margin-top:8px; display:flex; justify-content:flex-end; gap:8px; align-items:center; }
-.chip { font-size:12px; opacity:0.85; }
-video { width:100%; height:100%; display:block; background:#000; }
-@media (prefers-color-scheme: light) {
-  :root { --bg:#fff; --text:#0b0b0b; --border:#ddd; --btn-bg:#fff; --btn-text:#0b0b0b; --input-bg:#fff; --input-text:#0b0b0b; --error:#d32f2f; --card-bg:#fff; }
-}
-@media (prefers-color-scheme: dark) {
-  :root { --bg:#111; --text:#f5f5f5; --border:#2b2b2b; --btn-bg:#1d1d1d; --btn-text:#f5f5f5; --input-bg:#1a1a1a; --input-text:#f5f5f5; --error:#ff6b6b; --card-bg:#161616; }
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--btn-bg);
+    color: var(--btn-text);
+    cursor: pointer;
 }
 
-/* css agar ada efek fade sikit lah. */
-.thumb {
-  transition: opacity 0.4s ease;
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
-.thumb.fade-out {
-  opacity: 0;
+.error {
+    color: var(--error);
+    margin-top: 8px;
 }
 
-.thumb.fade-in {
-  opacity: 1;
-}
-/*css button id*/
-.unique-id-btn {
-  background-color: #f4f4f5;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 0.8em;
-  padding: 2px 6px;
-  margin-top: 4px;
-  cursor: pointer;
+.loading {
+    text-align: center;
+    padding: 10px;
+    opacity: 0.8;
 }
 
-.unique-id-btn:hover {
-  background-color: #e0e0e0;
+#videoList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
 }
 
+.item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--card-bg);
+}
 
-
-/* Frame fleksibel mengikuti rasio konten */
+.media {
+    aspect-ratio: 16/9;
+    background: #000;
+    position: relative;
+}
+/* Frame fleksibel mengikuti rasio konten video / thumbnail */
 .item .media {
   width: 100%;
-  aspect-ratio: var(--ar, 16/9); /* default sementara */
+  aspect-ratio: var(--ar, 16/9); /* default */
   background: #000;
   border-radius: 10px;
   overflow: hidden;
@@ -80,47 +92,197 @@ video { width:100%; height:100%; display:block; background:#000; }
 .item .media video {
   width: 100%;
   height: 100%;
-  object-fit: contain; /* Tidak cropping */
+  object-fit: contain; /* jaga proporsi asli */
   display: block;
+}
+
+.thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    font-size: 48px;
+    height: 100%;
+}
+
+.badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 12px;
+}
+
+.meta {
+    padding: 10px;
+}
+
+.cap {
+    margin-bottom: 6px;
+}
+
+.uid {
+    opacity: 0.8;
+    font-size: 12px;
+}
+
+.row {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    align-items: center;
+}
+
+.chip {
+    font-size: 12px;
+    opacity: 0.85;
+}
+
+video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: #000;
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --bg:#fff;
+        --text: #0b0b0b;
+        --border: #ddd;
+        --btn-bg: #fff;
+        --btn-text: #0b0b0b;
+        --input-bg: #fff;
+        --input-text: #0b0b0b;
+        --error: #d32f2f;
+        --card-bg: #fff;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg:#111;
+        --text: #f5f5f5;
+        --border: #2b2b2b;
+        --btn-bg: #1d1d1d;
+        --btn-text: #f5f5f5;
+        --input-bg: #1a1a1a;
+        --input-text: #f5f5f5;
+        --error: #ff6b6b;
+        --card-bg: #161616;
+    }
+}
+
+/* css agar ada efek fade sikit lah. */
+.thumb {
+    transition: opacity 0.4s ease;
+}
+
+.thumb.fade-out {
+    opacity: 0;
+}
+
+.thumb.fade-in {
+    opacity: 1;
+}
+
+/*css button id*/
+.unique-id-btn {
+    background-color: #f4f4f5;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.8em;
+    padding: 2px 6px;
+    margin-top: 4px;
+    cursor: pointer;
+}
+
+.unique-id-btn:hover {
+    background-color: #e0e0e0;
+}
+
+/* Frame fleksibel mengikuti rasio konten */
+.item .media {
+    width: 100%;
+    aspect-ratio: var(--ar, 16/9);
+    /* default sementara */
+    background: #000;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.item .media .thumb, .item .media video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* Tidak cropping */
+    display: block;
 }
 
 /* Status teks pengganti tombol play untuk file besar */
 .file-big {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #ff5f6d, #ffc371);
-  color: #fff;
-  font-weight: 600;
-  font-size: 0.85rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  animation: pulseBigFile 1.2s ease-in-out infinite;
-  white-space: nowrap;
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #ff5f6d, #ffc371);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    animation: pulseBigFile 1.2s ease-in-out infinite;
+    white-space: nowrap;
 }
+
 .chip-size {
-  display: inline-block;
-  padding: 2px 8px;
-  margin-right: 4px;
-  border-radius: 12px;
-  font-size: 0.78rem;
-  font-weight: 500;
-  background-color: #e0e0e0; /* Light mode */
-  color: #333;
+    display: inline-block;
+    padding: 2px 8px;
+    margin-right: 4px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    background-color: #e0e0e0;
+    /* Light mode */
+    color: #333;
 }
+
 .chip.error {
-  background-color: #ff5252;
-  color: white;
+    background-color: #ff5252;
+    color: white;
 }
 
 @media (prefers-color-scheme: dark) {
-  .chip-size {
-    background-color: #424242; /* Dark mode */
-    color: #f5f5f5;
-  }
+    .chip-size {
+        background-color: #424242;
+        /* Dark mode */
+        color: #f5f5f5;
+    }
 }
 
 @keyframes pulseBigFile {
-  0%   { transform: scale(1);   box-shadow: 0 0 0 rgba(255,95,109,0.6); }
-  50%  { transform: scale(1.05); box-shadow: 0 0 10px rgba(255,195,113,0.7); }
-  100% { transform: scale(1);   box-shadow: 0 0 0 rgba(255,95,109,0.6); }
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(255,95,109,0.6);
+    }
+
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 10px rgba(255,195,113,0.7);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(255,95,109,0.6);
+    }
 }
