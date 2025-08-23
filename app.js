@@ -142,7 +142,7 @@ function itemHTML(v) {
     let chipHtml, playBtnHtml;
     if (v.file_size > MAX_BYTES) {
         // File besar → tampilkan pesan peringatan & tanpa tombol Play
-        chipHtml = `<span class="chip error">>2MB!!, cari dengan multi Hashtag di bot</span>`;
+        chipHtml = `<span class="chip error">>2MB!!, cari dengan id di BOT</span>`;
         playBtnHtml = "";
     } else {
         // File aman → chip Ready + tombol Play
@@ -294,11 +294,14 @@ function loadVideos(append = false) {
 
                 item.dataset.ar = '1';
             });
+            patchClickableHashtags(document);
         })
         .catch(err => {
             videoList.innerHTML = `<div class="error">❌ ${escapeHtml(err.message || "Gagal memuat")}</div>`;
         })
         .finally(clearLoading);
+    
+
 }
 
 function applyFilter() {
@@ -647,5 +650,33 @@ function bindAspectFromVideo(videoEl, media) {
     videoEl.controlsList = 'nodownload';
     videoEl.addEventListener('contextmenu', e => e.preventDefault());
 }
+
+function patchClickableHashtags(scope = document) {
+    const hashtagRegex = /#(\w+)/g;
+
+    scope.querySelectorAll('.caption').forEach(captionEl => {
+        // Skip kalau sudah pernah diproses
+        if (captionEl.dataset.hashtagsProcessed) return;
+
+        captionEl.innerHTML = captionEl.textContent.replace(
+            hashtagRegex,
+            (m, tag) => `<span class="hashtag" data-tag="${tag}">${m}</span>`
+        );
+        captionEl.dataset.hashtagsProcessed = "true";
+    });
+}
+document.addEventListener("click", (e) => {
+    if (e.target.classList.contains("hashtag")) {
+        e.preventDefault();
+        const tag = e.target.dataset.tag;
+        console.log("Hashtag diklik:", tag);
+        // arahkan ke filter yang sudah ada
+        inputHashtag.value = `${tag}`;
+        applyFilter();
+    }
+});
+
+
+
 // ====== Boot ======
 loadVideos(false);
