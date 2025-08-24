@@ -1,20 +1,9 @@
-// 🔒 Blokir klik kanan di seluruh halaman
-//document.addEventListener('contextmenu', e => e.preventDefault());
-// (Opsional) Blokir shortcut save/inspect umum di desktop
-//document.addEventListener('keydown', e => {
-// Ctrl+S, Ctrl+U, Ctrl+Shift+I, F12
-//if ((e.ctrlKey && ['s', 'u'].includes(e.key.toLowerCase())) ||
-//  (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'i') ||
-//e.key === 'F12') {
-//e.preventDefault();
-//}
-//});
-
 const THUMB_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyXwDQzx31tpoE6gw55aNoAw57o6j9H6RYEY8EaA2HCY34cq74uI_8KrFv36W9wpHo/exec?action=thumb';
 async function loadThumbToImage(idOrUrl, imgEl, placeholderUrl) {
     try {
         const initData = tg?.initData || "";
         console.log(`[ThumbLoader] Start. raw=`, idOrUrl);
+
         // 1) Tentukan URL endpoint yang benar
         let urlObj;
         if (/^https?:\/\//i.test(idOrUrl)) {
@@ -32,46 +21,59 @@ async function loadThumbToImage(idOrUrl, imgEl, placeholderUrl) {
             urlObj = new URL(`${BASE_URL}?action=thumb&file_id=${encodeURIComponent(idOrUrl)}`);
             console.log(`[ThumbLoader] Bangun URL dari file_id.`, urlObj.href);
         }
+
         // 2) Tambahkan initData selalu (wajib untuk backend yang aman)
         if (initData) {
             urlObj.searchParams.set('initData', initData);
         }
-        // 3) Cek cache: kunci pakai file_id jika ada, kalau tidak pakai URL penuh
-        const cacheKey = ( () => {
+
+        // 3) Cek cache
+        const cacheKey = (() => {
             const fid = urlObj.searchParams.get('file_id');
             return fid ? `thumb:${fid}` : `thumb:url:${urlObj.href}`;
-        }
-        )();
+        })();
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) {
             console.log(`[ThumbLoader] Cache hit. render dari sessionStorage.`);
             imgEl.src = `data:image/jpeg;base64,${cached}`;
+
+            // 🌟 PATCH → update dataset agar stopItem pakai base64
+            const itemEl = imgEl.closest('.item');
+            if (itemEl) {
+                itemEl.dataset.thumb = imgEl.src;
+            }
             return;
         }
+
         // 4) Fetch JSON ke backend GAS
         console.log(`[ThumbLoader] Fetch → ${urlObj.href}`);
-        const res = await fetch(urlObj.href, {
-            method: 'GET'
-        });
-        if (!res.ok)
-            throw new Error(`HTTP ${res.status}`);
+        const res = await fetch(urlObj.href, { method: 'GET' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
         // 5) Parse & validasi
-        const {ok, mime, base64} = await res.json();
+        const { ok, mime, base64 } = await res.json();
         const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
         if (!ok || !allowedMimes.includes(mime) || !base64 || base64.length > 300_000) {
             throw new Error('Validasi thumbnail gagal');
         }
 
-        // 6) Render & cache
+        // 6) Render, cache, dan update dataset
         imgEl.src = `data:${mime};base64,${base64}`;
         sessionStorage.setItem(cacheKey, base64);
-        console.log(`[ThumbLoader] Thumbnail OK, cached.`);
+
+        // 🌟 PATCH → update dataset agar restore selalu base64
+        const itemEl = imgEl.closest('.item');
+        if (itemEl) {
+            itemEl.dataset.thumb = imgEl.src;
+        }
+
+        console.log(`[ThumbLoader] Thumbnail OK, cached & dataset updated.`);
     } catch (err) {
         console.error(`[ThumbLoader] ERROR: ${err.message}`);
-        if (placeholderUrl)
-            imgEl.src = placeholderUrl;
+        if (placeholderUrl) imgEl.src = placeholderUrl;
     }
 }
+
 // ====== Telegram context guard ======
 const tg = window.Telegram?.WebApp;
 if (!tg) {
@@ -549,12 +551,12 @@ function playVideo(thumbEl, fileId, mimeType) {
 
 function restoreThumb(itemEl, thumbEl, mediaEl) {
     mediaEl.innerHTML = '';
-    mediaEl.appendChild(thumbEl);
+    //mediaEl.appendChild(thumbEl);
 
     if (thumbEl.naturalWidth && thumbEl.naturalHeight) {
         setDynamicAspectRatio(mediaEl, thumbEl.naturalWidth, thumbEl.naturalHeight, '-Thumb');
     } else {
-        mediaEl.style.removeProperty('--ar');
+        //mediaEl.style.removeProperty('--ar');
     }
 
     thumbEl.classList.remove('fade-out');
@@ -640,8 +642,6 @@ function initAspectFromThumb(item) {
             once: true
         });
     }
-    // ⛔ Disable klik kanan pada thumbnail
-    img.addEventListener('contextmenu', e => e.preventDefault());
     // ✅ Pastikan object-fit terjaga (drop-in style)
     img.style.objectFit = 'contain';
 }
