@@ -78,8 +78,16 @@ button:disabled {
     border-radius: var(--radius);
     overflow: hidden;
     background: var(--card-bg);
+    margin-bottom: 16px;      /* jarak vertikal antar kartu */
+  padding-bottom: 8px;      /* opsional, isi dalam kartu */
+  border-bottom: 1px solid #eee; /* opsional, garis pemisah halus */
 }
 
+@media (min-width: 900px) {
+  .item {
+    margin-bottom: 20px;
+  }
+}
 .media {
     aspect-ratio: 16/9;
     background: #000;
@@ -292,4 +300,106 @@ video {
         transform: scale(1);
         box-shadow: 0 0 0 rgba(255,95,109,0.6);
     }
+}
+
+/* HEADER STICKY */
+.video-header {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 10;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+/* NAVIGASI TAB (mobile) */
+.tab-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.tab-nav button {
+  padding: 6px 12px;
+  border: none;
+  background: #eee;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.tab-nav button.active {
+  background: #3390ec;
+  color: white;
+}
+
+/* KONTEN TAB */
+.tab-content {
+  display: none;
+}
+.tab-content.active {
+  display: block;
+}
+
+.tab-loader {
+  text-align: center;
+  padding: 8px;
+  font-size: 14px;
+  color: #777;
+}
+
+/* DESKTOP MODE: 3 kolom terbuka semua */
+@media (min-width: 900px) {
+  .tab-nav {
+    display: none; /* nav disembunyikan di mode lebar */
+  }
+  .video-section {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .tab-content {
+    display: block !important; /* semua kolom terlihat */
+  }
+}
+
+/* Blok gabungan header + tab-nav */
+.header-block {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: #fff; /* Pastikan solid agar menutupi konten di bawah */
+  border-bottom: 1px solid #ddd; /* opsional, pemisah visual */
+}
+
+/* Header dan tab-nav tetap fleksibel */
+.video-header {
+  padding: 8px 12px;
+}
+
+.caption {
+  white-space: pre-line;   /* Tampilkan \n sebagai line break */
+  line-height: 1.4;        /* Sedikit spasi antar baris */
+  margin-bottom: 16px;      /* jarak vertikal antar kartu */
+  padding-bottom: 8px;      /* opsional, isi dalam kartu */
+    
+}
+
+.tab-nav {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: inherit; /* ikut background parent */
+}
+
+/* Style tombol tab */
+.tab-nav button {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  background: #f4f4f4;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.tab-nav button.active {
+  background-color: #3390ec;
+  color: #fff;
 }
