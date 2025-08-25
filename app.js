@@ -395,6 +395,68 @@ function itemHTML(v) {
     `;
 }
 
+// Copy Unique ID dengan prefix "id:"
+function copyUniqueId(uid, btnEl) {
+  const clean = (uid || "").toString().trim();
+  if (!clean) {
+    renderError?.("Unique ID kosong.");
+    return;
+  }
+
+  const text = `id:${clean}`;
+  const restoreLabel = () => {
+    if (btnEl) btnEl.textContent = `🆔 ${clean}`;
+  };
+
+  const onSuccess = () => {
+    // Umpan balik cepat
+    if (btnEl) {
+      btnEl.textContent = "✅ Copied!";
+      btnEl.disabled = true;
+      setTimeout(() => {
+        btnEl.disabled = false;
+        restoreLabel();
+      }, 1200);
+    }
+    // Haptic (kalau tersedia)
+    try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success"); } catch {}
+  };
+
+  const onError = (err) => {
+    console.error("[CopyUID] Gagal copy:", err);
+    renderError?.("Gagal menyalin ID.");
+    try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("error"); } catch {}
+  };
+
+  // Clipboard API modern + fallback
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(onSuccess).catch(onError);
+  } else {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      ok ? onSuccess() : onError(new Error("execCommand copy gagal"));
+    } catch (e) {
+      onError(e);
+    }
+  }
+}
+
+// Delegasi klik untuk semua tombol Unique ID
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".unique-id-btn");
+  if (!btn) return;
+  const uid = btn.getAttribute("data-uid");
+  copyUniqueId(uid, btn);
+});
+
 function applyInitialAspectRatio(itemEl) {
     const w = parseInt(itemEl.dataset.w, 10);
     const h = parseInt(itemEl.dataset.h, 10);
